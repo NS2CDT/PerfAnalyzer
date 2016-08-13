@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="FastBinaryReader.cs" />
     <Compile Include="NetworkNodes.cs" />
+    <Compile Include="ProfileFrame.cs" />
     <Compile Include="ProfileLog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Timer.cs" />

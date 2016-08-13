@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Text;
@@ -8,7 +10,7 @@ using System.IO;
 
 namespace PerformanceLog {
 
-  public unsafe class FastBinaryReader : IDisposable {
+  public unsafe class FastBinaryReader :IDisposable {
     private byte[] _buffer;
     private GCHandle _bufHandle;
     private byte* _buffBase;
@@ -24,7 +26,7 @@ namespace PerformanceLog {
     }
 
     public FastBinaryReader(Stream stream)
-      : this() {
+      : this(){
       _stream = stream;
     }
 
@@ -195,6 +197,29 @@ namespace PerformanceLog {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SkipVarInt() {
+      unchecked {
+        if (BufferHasBytes(4)) {
+          int v = *_buffPtr++;
+
+          while ((v & 0x80u) != 0) {
+            v = *_buffPtr++;
+          }
+          /*
+          byte v = *_buffPtr++;
+          int bit = (v >> 7);
+          int bit2 = (_buffPtr[1] >> 7);
+          int bit3 = (_buffPtr[2] >> 7);
+
+          (bit & bit2) + (bit
+         */
+        } else {
+          ReadVarIntSlow();
+        }
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort ReadPPId(byte typeByte) {
       unchecked {
         if (BufferHasBytes(2)) {
@@ -215,16 +240,16 @@ namespace PerformanceLog {
 
     public ushort ReadPPIdSlow(byte typeByte) {
       unchecked {
-        var top = 0;
-        var mid = typeByte & 0xF;
-        var bot = ReadByte();
+          var top = 0;
+          var mid = typeByte & 0xF;
+          var bot = ReadByte();
 
-        if ((typeByte & 0x10) != 0) {
-          top = ReadByte();
+          if ((typeByte & 0x10) != 0) {
+            top = ReadByte();
+          }
+
+          return (ushort)((top << 12) + (mid << 8) + bot);
         }
-
-        return (ushort)((top << 12) + (mid << 8) + bot);
-      }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -244,7 +269,8 @@ namespace PerformanceLog {
       }
     }
 
-    public string ReadString(Encoding encoding, int length) {
+    public string ReadString(Encoding encoding, int length)
+    {
       if (BufferHasBytes(length)) {
         var result = encoding.GetString(_buffer, BufferOffset, length);
         _buffPtr += length;

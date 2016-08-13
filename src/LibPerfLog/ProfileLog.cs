@@ -1,8 +1,11 @@
+using MoreLinq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace PerformanceLog {
 
@@ -28,12 +31,14 @@ namespace PerformanceLog {
     public ushort Depth;
     public uint CallCount;
     public uint Time;
-    public uint ChildTime;
-
-    public uint ExclusiveTime => Time - ChildTime;
+    public uint ExclusiveTime;
 
     public double TimeMS => Time * 10 / 1000.0;
     public double ExclusiveTimeMS => ExclusiveTime * 10 / 1000.0;
+
+    public bool IsValid() {
+      return Depth != ushort.MaxValue;
+    }
 
 
     public override string ToString() {
@@ -54,165 +59,47 @@ namespace PerformanceLog {
     public float Ratio;
   };
 
-  public class ProfileThread {
-    public string Name { get; set; }
-    public uint Time;
-    public ProfileFrame Frame { get; set; }
-    public int StartIndex { get; set; }
-    public int NodeCount { get; internal set; }
+  public class PNodeStats {
+    public string Name { get; }
+    public int Id { get; }
+    public ProfileLog Owner { get; }
+    public PNodeStats Parent { get; set; }
 
-    public ProfileThread(ProfileFrame frame) {
-      Frame = frame;
-    }
-  }
+    public double TotalTime { get; set; }
+    public double TotalExclusiveTime { get; set; }
+    public double AvgExclusiveTime { get; set; }
+    public double MaxAvgExclusiveTime { get; set; }
 
-  public class ProfileFrame {
-    public double StartTime;
-    public double Time;
-    public double TotalTime;
-    public ProfileSection[] Sections;
-    public CallRecord[] Calls;
+    public long CallCount { get; set; }
+    public double AvgCallCount { get; set; }
+    public int NodeCount { get; set; }
+    public int FrameCount { get; internal set; }
 
-    public CallNode[] Nodes;
-    private uint GCTime;
-
-    public uint FrameIndex { get; private set; }
-    public ProfileLog Owner { get; private set; }
-
-    public ProfileFrame(ProfileLog owner, uint frameIndex, double totalTime, ProfileSection[] sections) {
+    public PNodeStats(ProfileLog owner, string name, int id) {
       Owner = owner;
-      FrameIndex = frameIndex;
-      Time = totalTime;
-      Sections = sections;
+      Name = name;
+      Id = id;
     }
 
-    internal void SetCalls(CallRecord[] calls, int callNodeCount) {
-      var compacted = new CallRecord[callNodeCount];
-      Calls = compacted;
+    public void SetStats(long totaExclTime, double peakAvgExclusive, long callCount, int nodeCount) {
+      TotalExclusiveTime = ToMs(totaExclTime);
+      MaxAvgExclusiveTime = peakAvgExclusive * 10 / 1000.0;
+      CallCount = callCount;
+      AvgExclusiveTime = TotalExclusiveTime / CallCount;
+      NodeCount = nodeCount;
+      if (nodeCount != 0) {
+        AvgCallCount = CallCount / nodeCount;
+      }
 
-      Array.Copy(calls, compacted, callNodeCount);
     }
 
-    public void ComputeTime() {
-      if (Calls == null) {
-        return;
-      }
-
-
-      int prevDepth = 0, parent = 0;
-      ProfileThread curThread = null;
-      Threads = new List<ProfileThread>();
-      var depthToParent = new int[MaxDepth + 1];
-
-      uint threadppid = Owner.Threadppid;
-
-      for (int i = 1; i < Calls.Length; i++) {
-        int depth = Calls[i].Depth;
-        var time = Calls[i].Time;
-        var callCount = Calls[i].CallCount;
-        string name = Owner.ppMap[Calls[i].ppid];
-
-        if (depth == 1) {
-          TotalTime += time;
-        }
-
-        if (Calls[i].ppid == threadppid) {
-          // Debug.Assert(Owner.ppMap[Calls[i + 1].ppid] == "Thread");
-
-          if (depth != 2) {
-            Debugger.Break();
-          }
-
-          if (curThread != null) {
-            curThread.NodeCount = i - curThread.StartIndex;
-          }
-
-          curThread = new ProfileThread(this) {
-            StartIndex = i,
-            Time = Calls[i].Time,
-            Name = Owner.ppMap[Calls[i + 1].ppid],
-          };
-          Threads.Add(curThread);
-        } else if (curThread == null) {
-          // Skip until we hit a thread because the profiler lost its current profile node context
-          continue;
-        }
-
-        if (name == "ScriptGC_STEP") {
-          //Lift out the GC nodes so they don't distort actual CPU costs when analysing
-          GCTime += time;
-          GCCount += callCount;
-
-          if (curThread.Name != "CollectGarbageJob::Run") {
-            for (int j = i; j >= curThread.StartIndex; j--) {
-              Calls[i].Time -= time;
-            }
-          }
-          //subTime += time;
-        }
-
-        if (Owner.IdleNodes.Contains(Calls[i].ppid)) {
-          TotalTime -= time;
-          IdleTime += time;
-          IdleCount++;
-        }
-
-        if (depth > prevDepth) {
-          parent = Math.Max(i - 1, 0);
-          Debug.Assert(Calls[parent].Depth == depth - 1);
-          depthToParent[depth] = parent;
-        } else if (depth < prevDepth) {
-          parent = depthToParent[depth];
-        } else {
-        }
-
-        Calls[parent].ChildTime += time;
-        Debug.Assert(parent == 0 || Calls[parent].ExclusiveTime >= 0);
-
-        prevDepth = depth;
-      }
-
-      if (curThread != null) {
-        curThread.NodeCount = Calls.Length - curThread.StartIndex;
-      }
+    private double ToMs(long time) {
+      return time * 10 / 1000.0;
     }
 
-    public string NodesString {
-      get {
-        var buf = new StringBuilder();
-
-        for (int i = 0; i < Calls.Length; i++) {
-          int depth = Calls[i].Depth;
-          var time = Calls[i].TimeMS;
-          var callCount = Calls[i].CallCount;
-          string name = Owner.ppMap[Calls[i].ppid];
-
-          buf.Append(depth);
-          buf.Append(' ', depth);
-          buf.AppendLine($"{name} Time: {time}/{Calls[i].ExclusiveTimeMS} Calls: {callCount}");
-        }
-
-        return buf.ToString();
-      }
+    public override string ToString() {
+      return $"{Name}({Id}) AvgTime: {AvgExclusiveTime} MaxTime: {MaxAvgExclusiveTime} AvgCall{AvgCallCount} Calls: {CallCount}";
     }
-
-    public double TotalTimeMS => TotalTime * 1000000;
-
-    public uint GameTime => Sections[(int)PSectionId.Game].Time;
-    public double GameRatio => GameTime / TotalTimeMS;
-
-    public uint EngineTime => Sections[(int)PSectionId.Engine].Time;
-    public double EngineRatio => EngineTime / TotalTimeMS;
-
-    public uint RenderingTime => Sections[(int)PSectionId.Rendering].Time;
-    public double RenderingRatio => RenderingTime / TotalTimeMS;
-
-    public uint IdleTime { get; internal set; }
-    public List<ProfileThread> Threads { get; private set; }
-    public uint GCCount { get; private set; }
-    public int IdleCount { get; private set; }
-    public int MaxDepth { get; internal set; }
-
   }
 
   public enum PlogEntyType {
@@ -225,41 +112,89 @@ namespace PerformanceLog {
   }
 
   public class ProfileLog {
-    public Dictionary<uint, string> ppMap;
-    public Dictionary<string, uint> ppLookup;
+    public int Version { get; private set; }
+
+    public Dictionary<int, string> ppMap;
+    public Dictionary<string, int> ppLookup;
+    public string[] Names { get; private set; }
     FastBinaryReader reader;
     double profileCostPerCall;
-    byte version;
 
-    public uint ScriptGC_STEP { get; private set; }
-    public HashSet<uint> IdleNodes { get; private set; }
+    public List<ProfileFrame> Frames { get; private set; }
+    public List<PNodeStats> NodeStats { get; private set; }
+
+    public HashSet<int> IdleNodes { get; private set; }
+    public HashSet<int> NetMsgIds { get; private set; }
+
+    public int Threadppid { get; private set; }
+    public int ScriptGC_STEP { get; private set; }
+    public int HeapFreeId { get; private set; }
+    public int HeapAllocateId { get; private set; }
+    public int ServerGameUpdateId { get; private set; }
+    public int WaitForGCJobId { get; private set; }
+    public int WaitForWorldJobId { get; private set; }
+    public int WaitForGPUId { get; private set; }
+    public object TotalNodes { get; private set; }
+    public Dictionary<int, PNodeStats> NodeLookup { get; private set; }
 
     public ProfileLog() {
-      ppMap = new Dictionary<uint, string>();
-      ppLookup = new Dictionary<string, uint>();
-      ScriptGC_STEP = uint.MaxValue;
-      IdleNodes = new HashSet<uint>();
+      ppMap = new Dictionary<int, string>();
+      ppLookup = new Dictionary<string, int>();
+      IdleNodes = new HashSet<int>();
     }
 
     public ProfileLog(string filePath) : this() {
       Load(filePath);
     }
 
+    public List<PNodeStats> GetMatchingNodes(string label) {
+      var nodeIds = GetMatchNames(label);
+
+      return NodeStats.Where(n => nodeIds.Contains(n.Id)).ToList();
+    }
+
+    public HashSet<int> GetMatchNames(string label) {
+      return Names.Index().
+             Where(p => !NetMsgIds.Contains(p.Key) && p.Value.IndexOf(label, StringComparison.OrdinalIgnoreCase) != -1).
+             Select(p => p.Key).
+             ToHashSet();
+    }
+
+    public int GetNameId(string name) {
+      int ppid;
+      return ppLookup.TryGetValue(name, out ppid) ? ppid : -1;
+    }
+
     internal void Load(string filePath) {
       var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       reader = new FastBinaryReader(stream);
 
-      version = reader.ReadByte();
+      Version = reader.ReadByte();
       profileCostPerCall = readVarInt() * 1E-12;
 
-      ParseLoop();
+      var name = Path.GetFileName(filePath);
+
+      using (new Timer("Parse plog: " + name)) {
+        ParseLoop();
+      }
+
+
       ProcessNameIds();
 
-      //foreach (var f in Frames) {
-      //  f.ComputeTime();
-      //}
+      using (new Timer("ComputeTimes plog: " + name)) {
+#if true
+        Parallel.ForEach(Frames, f => f.ComputeTime());
+#else
+      foreach (var f in Frames) {
+        f.ComputeTime();
+      }
+#endif
+      }
 
-      //Parallel.ForEach(Frames, f => f.ComputeTime());
+      TotalNodes = Frames.Sum(f => f.Calls.Length);
+      NodeStats = GetStatsForRange(0, Frames.Count);
+      NodeLookup = NodeStats.ToDictionary(n => n.Id, n => n);
+
       /*
             cppNames = ppLookup.Keys.Where(k => k.Contains("::")).ToHashSet();
 
@@ -267,63 +202,22 @@ namespace PerformanceLog {
 
             var maxFrame = Frames.MaxBy(f => f.TotalTime);
            // var avg = Frames.Where(f => f.TotalTime > 180).Average(f => f.TotalTime);
-
-            TotalExclusiveTime = new long[ppLookup.Count];
-            var counts = new uint[ppLookup.Count];
-
-
-            foreach (var frame in Frames) {
-              frame.ComputeTime();
-              var nodes = frame.Calls;
-
-              for (int i = 1; i < nodes?.Length; i++) {
-                int id = nodes[i].ppid;
-                counts[id] += nodes[i].CallCount;
-                TotalExclusiveTime[id] += nodes[i].ExclusiveTime;
-              }
-            }
-
-            var times2 = TotalExclusiveTime.Index().OrderByDescending(p => p.Value).Select(p => new {
-              Name = ppMap[(uint)p.Key],
-              Time = p.Value*10 /1000.0,
-              Average = (p.Value * 10 / 1000.0) / counts[p.Key],
-              Calls = counts[p.Key],
-            }).ToArray();
-
          */
+
+
+      var threadList = Frames.SelectMany(f => f.Threads).ToList();
+
+      var threads = threadList.GroupBy(t => t.Name).ToLookup(g => g.Key, g => g?.ToList());
+
+      var sgames = GetMatchingNodes("ServerGame");
+
+      var waitNodes = GetMatchingNodes("wait");
+
       return;
     }
 
-    private void ProcessNameIds() {
-      foreach (var pair in ppMap) {
-        var name = pair.Value;
-        var id = pair.Key;
-
-        ppLookup.Add(name, id);
-
-        if (name.Contains("Idle")) {
-          IdleNodes.Add(id);
-        }
-      }
-
-      uint ppid;
-
-      if (ppLookup.TryGetValue("ScriptGC_STEP", out ppid)) {
-        ScriptGC_STEP = ppid;
-      }
-
-      if (ppLookup.TryGetValue("Thread", out ppid)) {
-        Threadppid = ppid;
-      }
-    }
-
-    public long[] TotalExclusiveTime;
-    public List<ProfileFrame> Frames { get; private set; }
-    public uint Threadppid { get; private set; }
-
     private void ParseLoop() {
       int depth = 0;
-      uint ppId;
       string name;
 
       var stream = reader.BaseStream;
@@ -365,7 +259,7 @@ namespace PerformanceLog {
             break;
 
           case PlogEntyType.NameId:
-            ppId = reader.ReadPPId(typeByte);
+            int ppId = reader.ReadPPId(typeByte);
             name = readString();
             ppMap.Add(ppId, name);
             break;
@@ -375,7 +269,7 @@ namespace PerformanceLog {
 
             calls[callNodeCount].ppid = reader.ReadPPId(typeByte);
             calls[callNodeCount].Depth = (ushort)depth;
-            calls[callNodeCount].CallCount = readVarInt();
+            calls[callNodeCount].CallCount = Math.Max(1, readVarInt());
             calls[callNodeCount].Time = readVarInt();
             //calls[callNodeCount].listPosition = (byte)(type == PlogEntyType.CallAndDepthInc ? 0 : 3);
             callNodeCount++;
@@ -414,6 +308,193 @@ namespace PerformanceLog {
       return;
     }
 
+    private void ProcessNameIds() {
+      NetMsgIds = new HashSet<int>();
+      Names = new string[ppMap.Count];
+
+      foreach (var pair in ppMap) {
+        var name = pair.Value;
+        var id = pair.Key;
+        Names[id] = name;
+
+        if (name.StartsWith("field-", StringComparison.Ordinal) ||
+            name.StartsWith("class-", StringComparison.Ordinal) ||
+            name.StartsWith("message-", StringComparison.Ordinal) ||
+            name.StartsWith("client-", StringComparison.Ordinal)) {
+
+          NetMsgIds.Add(id);
+        }
+
+        ppLookup.Add(name, id);
+
+        if (name.Contains("Idle")) {
+          IdleNodes.Add(id);
+        }
+      }
+
+      uint ppid;
+
+      ScriptGC_STEP = GetNameId("ScriptGC_STEP");
+      Threadppid = GetNameId("Thread");
+      Debug.Assert(Threadppid != -1);
+      HeapFreeId = GetNameId("HeapAllocator::Free");
+      HeapAllocateId = GetNameId("HeapAllocator::Allocate");
+      ServerGameUpdateId = GetNameId("ServerGame::Update");
+
+      WaitForGCJobId = GetNameId("ClientGame::FinishRendering (wait for GC job)");
+      WaitForWorldJobId = GetNameId("ClientGame::Update (wait for update world job to finish)");
+
+      WaitForGPUId = GetNameId("D3D11Device::Present");
+      if (WaitForGPUId == -1) {
+        WaitForGPUId = GetNameId("D3D9Device::Present");
+      }
+      if (WaitForGPUId == -1) {
+        WaitForGPUId = GetNameId("OpenGLDevice::Present");
+      }
+    }
+
+    struct NodeInfo {
+      public long TotalTime;
+      public long TotalExclusiveTime;
+      public long CallCount;
+      public int FrameCount;
+      internal int NodeCount;
+      internal double PeakAvgTime;
+      public uint PeakFrameTime;
+
+
+      public NodeInfo Combine(NodeInfo b) {
+        var result = this;
+        result.CallCount += b.CallCount;
+        result.TotalTime += b.TotalTime;
+        result.TotalExclusiveTime += b.TotalExclusiveTime;
+        result.NodeCount += b.NodeCount;
+        result.PeakAvgTime = Math.Max(result.PeakAvgTime, b.PeakAvgTime);
+        return result;
+      }
+    }
+
+    public List<PNodeStats> GetStatsForRange(int start, int end) {
+
+      var list = new NodeInfo[ppLookup.Count];
+
+      var nodeInframe = new byte[ppLookup.Count];
+      var parent = new ushort[ppLookup.Count];
+
+      for (int j = start; j < end; j++) {
+        var frame = Frames[j];
+        var calls = frame.Calls;
+
+        for (int i = 1; i < calls.Length; i++) {
+          int id = calls[i].ppid;
+          var exclusiveTime = calls[i].ExclusiveTime;
+
+          nodeInframe[id] |= 1;
+
+          list[id].NodeCount++;
+          list[id].CallCount += calls[i].CallCount;
+          list[id].TotalTime += calls[i].Time;
+          list[id].TotalExclusiveTime += exclusiveTime;
+
+          var nodeAvg = exclusiveTime / (double)calls[i].CallCount;
+          list[id].PeakAvgTime = Math.Max(nodeAvg, nodeAvg);
+
+          list[id].PeakFrameTime = Math.Max(calls[i].ExclusiveTime, list[id].PeakFrameTime);
+        }
+
+        for (int i = 0; i < ppLookup.Count; i++) {
+          list[i].FrameCount += nodeInframe[i];
+          nodeInframe[i] = 0;
+        }
+      }
+
+      var nodeStats = new List<PNodeStats>(ppLookup.Count - NetMsgIds.Count);
+
+      Debug.Assert(Threadppid == 1);
+      //Skip the shared Frame Thread node
+      for (int i = 0; i < ppLookup.Count; i++) {
+        var name = ppMap[i];
+
+        if (NetMsgIds.Contains(i)) {
+          continue;
+        }
+
+        var node = new PNodeStats(this, name, i);
+        node.SetStats(list[i].TotalExclusiveTime, list[i].PeakAvgTime, list[i].CallCount, list[i].NodeCount);
+        node.FrameCount = list[i].FrameCount;
+        node.TotalTime = list[i].TotalTime;
+        nodeStats.Add(node);
+      }
+
+      return nodeStats;
+    }
+
+    public struct NodeFrameEntry {
+      public uint RawTime;
+      public int Index;
+      public uint CallCount;
+      public double Percent;
+    }
+
+    public uint[] GetNodeTimes(int nodeId, int start = 0, int end = -1) {
+
+      var stats = NodeLookup[nodeId];
+      end = end == -1 ? Frames.Count : end;
+      var result = new uint[end - start];
+
+      for (int j = start; j < end; j++) {
+        var calls = Frames[j].Calls;
+
+        for (int i = 1; i < calls.Length; i++) {
+          int id = calls[i].ppid;
+          var exclusiveTime = calls[i].ExclusiveTime;
+
+          if (id == nodeId) {
+            result[j] = calls[i].ExclusiveTime;
+            break;
+          }
+        }
+      }
+
+      return result;
+    }
+
+
+    public List<NodeFrameEntry> GetNodeFrameStats(int nodeId) {
+
+      var stats = NodeLookup[nodeId];
+      var result = new List<NodeFrameEntry>(stats.FrameCount);
+
+      for (int j = 0; j < Frames.Count; j++) {
+        var frame = Frames[j];
+        var calls = frame.Calls;
+
+        var threadI = 0;
+        int threadLimit = frame.Threads.First().EndIndex;
+
+        var curr = new NodeFrameEntry();
+
+        for (int i = 1; i < calls.Length; i++) {
+          int id = calls[i].ppid;
+          var exclusiveTime = calls[i].ExclusiveTime;
+
+          if (i == threadLimit) {
+            threadI++;
+            threadLimit = frame.Threads[threadI].EndIndex;
+          }
+
+          if (id == nodeId) {
+            curr.RawTime = calls[i].ExclusiveTime;
+            curr.CallCount = calls[i].CallCount;
+            curr.Percent = calls[i].ExclusiveTime / (double)frame.Threads[threadI].Time;
+          }
+        }
+        result.Add(curr);
+      }
+
+      return result;
+    }
+
     uint frameCount = 0;
 
     private ProfileFrame ReadFrame() {
@@ -441,16 +522,16 @@ namespace PerformanceLog {
       var name = readStringId();
 
       while (name != "network-end") {
-        if (name.StartsWith("client-")) {
+        if (name.StartsWith("client-", StringComparison.Ordinal)) {
           NetworkClientInfo.Read(reader);
 
-        } else if (name.StartsWith("class-")) {
+        } else if (name.StartsWith("class-", StringComparison.Ordinal)) {
           NetworkClass.Read(this);
 
-        } else if (name.StartsWith("message-")) {
+        } else if (name.StartsWith("message-", StringComparison.Ordinal)) {
           NetworkMessage.Read(this);
         } else {
-          System.Diagnostics.Trace.Fail("Unknown network name " + name);
+          Trace.Fail("Unknown network name " + name);
         }
 
         name = readStringId();
@@ -465,7 +546,7 @@ namespace PerformanceLog {
     }
 
     internal string readStringId() {
-      var id = readVarInt();
+      var id = (int)readVarInt();
       return ppMap[id];
     }
 
@@ -486,39 +567,8 @@ namespace PerformanceLog {
 
     internal uint readVarInt() {
       return reader.readVarInt();
-      /*
-      unchecked {
-        byte v = reader.ReadByte();
-        uint result = (v & 0x7Fu);
-
-        int shift = 0;
-        while ((v & 0x80u) != 0) {
-          v = reader.ReadByte();
-          shift += 7;
-          result += (v & 0x7Fu) << shift;
-        }
-
-        return result;
-      }
-      */
     }
 
-    string[] sectionNames = {
-    "Unspecified",
-    "Profiler",
-    "Memory",
-    "Loading",
-    "Game",
-    "Rendering",
-    "Physics",
-    "Collision",
-    "Animation",
-    "Sound",
-    "Engine",
-    "Effects",
-    "Pathing",
-    "GC",
-  };
     public HashSet<string> cppNames;
   }
 }

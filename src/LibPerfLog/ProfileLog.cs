@@ -59,12 +59,55 @@ namespace PerformanceLog {
     public float Ratio;
   };
 
-  public class PerfNodeStats {
-    public string Name { get; }
-    public int Id { get; }
-    public ProfileLog Owner { get; }
-    public PerfNodeStats Parent { get; set; }
+  public class NodeStatsDiff {
+    public PerfNodeStats Old { get; }
+    public PerfNodeStats New { get; }
+    public string Name => Old.Name;
+    public double Change { get; internal set; }
+    public double PeakChange { get; internal set; }
 
+    public NodeStatsDiff(PerfNodeStats old, PerfNodeStats @new) {
+      Old = old;
+      New = @new;
+
+      Change = GetChangePercent(Old.AvgExclusiveTime, New.AvgExclusiveTime);
+      PeakChange = GetChangePercent(Old.MaxAvgExclusiveTime, New.MaxAvgExclusiveTime);
+      /*
+      TotalTime = TotalTime - other.TotalTime,
+        TotalExclusiveTime = TotalExclusiveTime - other.TotalExclusiveTime,
+        AvgExclusiveTime = AvgExclusiveTime - other.AvgExclusiveTime,
+        MaxAvgExclusiveTime = MaxAvgExclusiveTime - other.MaxAvgExclusiveTime,
+        PeakFrameTime = PeakFrameTime - other.PeakFrameTime,
+
+        CallCount = CallCount - other.CallCount,
+        AvgCallCount = AvgCallCount - other.AvgCallCount,
+        NodeCount = NodeCount - other.NodeCount,
+        FrameCount = FrameCount - other.FrameCount,
+        */
+    }
+
+    private double GetChangePercent(double old, double @new) {
+      var change = @new / old;
+
+      if (old == 0.0 || @new == 0.0) {
+        return 0;
+      }
+
+      if (change < 1.0) {
+        // Time decreased
+        return -(1.0 - change);
+      } else {
+        return change - 1;
+      }
+    }
+
+    public override string ToString() {
+      return $"{Name}: {Change*100 :F3}% {Old.AvgExclusiveTime:F3}Ms {New.AvgExclusiveTime:F3}Ms";
+    }
+  }
+
+  public class BaseNodeStats {
+    public string Name { get; protected set; }
     public double TotalTime { get; set; }
     public double TotalExclusiveTime { get; set; }
     public double AvgExclusiveTime { get; set; }
@@ -75,6 +118,12 @@ namespace PerformanceLog {
     public double AvgCallCount { get; set; }
     public int NodeCount { get; set; }
     public int FrameCount { get; internal set; }
+  }
+
+  public class PerfNodeStats : BaseNodeStats{
+    public int Id { get; }
+    public ProfileLog Owner { get; }
+    public PerfNodeStats Parent { get; set; }
 
     public PerfNodeStats(ProfileLog owner, string name, int id) {
       Owner = owner;
@@ -98,6 +147,10 @@ namespace PerformanceLog {
       FrameCount = stats.FrameCount;
       PeakFrameTime = ToMs(stats.PeakFrameTime);
       TotalTime = ToMs(stats.TotalTime);
+    }
+
+    public NodeStatsDiff GetDiff(PerfNodeStats old) {
+      return new NodeStatsDiff(old, this);
     }
 
     private double ToMs(long time) {
@@ -172,6 +225,21 @@ namespace PerformanceLog {
     public int GetNameId(string name) {
       int ppid;
       return ppLookup.TryGetValue(name, out ppid) ? ppid : -1;
+    }
+
+    public List<NodeStatsDiff> GetNodeStatsDiff(List<PerfNodeStats> old) {
+
+      var result = new List<NodeStatsDiff>(old.Count);
+
+      foreach (var node in old) {
+        var id = GetNameId(node.Name);
+
+        if (id != -1) {
+          result.Add(NodeLookup[id].GetDiff(node));
+        }
+      }
+
+      return result;
     }
 
     internal void Load(string filePath) {
@@ -588,5 +656,12 @@ namespace PerformanceLog {
     }
 
     public HashSet<string> cppNames;
+
+    //Returns duration of log in seconds
+    public double Duration => ((Frames.Last().EndTimeMS - Frames.First().EndTimeMS) / 1000);
+
+    public override string ToString() {
+      return $"{Path.GetFileName(FilePath)} Frames: {Frames.Count} Time: {Duration} seconds";
+    }
   }
 }

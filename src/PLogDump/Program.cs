@@ -1,6 +1,7 @@
 using LinqStatistics;
 using PerformanceLog;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Tababular;
@@ -22,16 +23,37 @@ namespace PLogDump {
         return;
       }
 
-      ProfileLog log;
+      ProfileLog log1, log2;
 
       using (new Timer("Loading plog")) {
-        log = new ProfileLog(path);
+        log1 = new ProfileLog(path);
       }
 
+      PrintStats(log1);
+
+      var path2 = args.Length > 1 ? args[1] : null;
+
+      if (path2 != null) {
+        using (new Timer("Loading plog")) {
+          log2 = new ProfileLog(path2);
+        }
+
+        var diff = log2.GetNodeStatsDiff(log1.NodeStats);
+        diff = diff.OrderByDescending(n => n.Old.AvgExclusiveTime).ToList();
+        var diff2 = diff.OrderByDescending(n => n.New.AvgExclusiveTime).ToList();
+
+        var ModelMixin = GetNameDiff(log1, log2, "ModelMixin");
+
+
+      }
 
       return;
     }
 
+    public static List<NodeStatsDiff> GetNameDiff(ProfileLog old, ProfileLog _new, string name) {
+      var nodes = old.GetMatchingNodes(name);
+      return _new.GetNodeStatsDiff(nodes).OrderByDescending(n => n.Old.AvgExclusiveTime).ToList();
+    }
 
     static void PrintStats(ProfileLog log) {
       var formatter = new TableFormatter();
@@ -52,7 +74,8 @@ namespace PLogDump {
 
       Console.WriteLine($"FrameTime Avg: {avgFrameMs:F3} Median: {medianFrameMs:F3} top 10%: {toppercentile90:F3}\n");
 
-
+      var gcframes = frames.Select(f => (f.MainThread?.GCTime ?? 0)* 10.0 / 1000.0).ToList();
+      var maxFrameStep = gcframes.OrderByDescending(t => t).ToList();
 
       if (log.WaitForGCJobId != -1) {
         PrintNode(log.NodeLookup[log.WaitForGCJobId], "WaitForGC");

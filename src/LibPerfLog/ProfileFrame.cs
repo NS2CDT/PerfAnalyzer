@@ -33,7 +33,8 @@ namespace PerformanceLog {
     public ProfileLog Owner { get; private set; }
 
     public double TotalTimeMS => TotalTime * 1000000;
-    public double StartTimeMS => StartTime / 1000000.0;
+    public double StartTimeMS => StartTime / 1000.0;
+    public double EndTimeMS => EndTime / 1000.0;
 
     public uint GameTime => Sections[(int)PSectionId.Game].Time;
     public double GameRatio => GameTime / TotalTimeMS;

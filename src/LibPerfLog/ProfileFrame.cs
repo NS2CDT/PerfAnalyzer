@@ -14,84 +14,40 @@ namespace PerformanceLog {
     MainThread = 0x8
   }
 
-  public class ProfileThread {
-    public int NameId { get; set; }
-    public string Name { get; set; }
-    public ProfileThreadFlag Flags { get; set; }
-
-    public uint Time;
-    public ProfileFrame Frame { get; set; }
-    public int StartIndex { get; set; }
-    public int EntryPointIndex { get; set; }
-    public int NodeCount { get; internal set; }
-    public int EndIndex => StartIndex + NodeCount;
-
-    public ProfileThread(ProfileFrame frame, int nameId, string name) {
-      Debug.Assert(name != null);
-      Frame = frame;
-      Name = name;
-      NameId = nameId;
-      NodeCount = -1;
-    }
-
-    public double TimeMs => Time * 10 / 1000.0;
-
-    public IEnumerable<CallRecord> Nodes {
-      get {
-        for (int i = StartIndex; i < StartIndex + NodeCount; i++) {
-          yield return Frame.Calls[i];
-        }
-      }
-    }
-
-    public bool ContainsNode(int index) {
-      return unchecked((uint)(StartIndex - index)) < NodeCount;
-    }
-
-    public int GetNodeIndexWithId(int id) {
-      return Frame.GetNodeIndexWithId(id, StartIndex, StartIndex+NodeCount);
-    }
-
-    public CallRecord GetNodeWithId(int id) {
-      int index = GetNodeIndexWithId(id);
-
-      return index != -1 ? Frame.Calls[index] : default(CallRecord);
-    }
-
-    public string NodesString {
-      get {
-        return Frame.GetNodeString(StartIndex, NodeCount != -1 ? StartIndex + NodeCount : Frame.Calls.Length);
-      }
-    }
-
-    public override string ToString() {
-      return $"Thread({Name}) Time: {TimeMs:3.5}ms Nodes: {NodeCount}";
-    }
-  }
-
-
-
   public class ProfileFrame {
-    public double StartTime;
-    public double Time;
+    public long StartTime { get; internal set; }
+    public long EndTime { get; private set; }
+    public long RawTime { get; internal set; }
+    public double Time { get; internal set; }
     public double TotalTime;
+
     public ProfileSection[] Sections;
     public CallRecord[] Calls;
 
-    public uint IdleTime { get; internal set; }
+    public ProfileThread MainThread { get; private set; }
     public List<ProfileThread> Threads { get; private set; }
     public uint GCCount { get; private set; }
-    public int IdleCount { get; private set; }
     public int MaxDepth { get; internal set; }
-    private uint GCTime;
 
     public uint FrameIndex { get; private set; }
     public ProfileLog Owner { get; private set; }
 
-    public ProfileFrame(ProfileLog owner, uint frameIndex, double totalTime, ProfileSection[] sections) {
+    public double TotalTimeMS => TotalTime * 1000000;
+    public double StartTimeMS => StartTime / 1000000.0;
+
+    public uint GameTime => Sections[(int)PSectionId.Game].Time;
+    public double GameRatio => GameTime / TotalTimeMS;
+
+    public uint EngineTime => Sections[(int)PSectionId.Engine].Time;
+    public double EngineRatio => EngineTime / TotalTimeMS;
+
+    public uint RenderingTime => Sections[(int)PSectionId.Rendering].Time;
+    public double RenderingRatio => RenderingTime / TotalTimeMS;
+
+    public ProfileFrame(ProfileLog owner, uint frameIndex, long startTime, ProfileSection[] sections) {
       Owner = owner;
       FrameIndex = frameIndex;
-      Time = totalTime;
+      EndTime = startTime;
       Sections = sections;
     }
 
@@ -102,6 +58,13 @@ namespace PerformanceLog {
       Array.Copy(calls, compacted, callCount);
     }
 
+    internal void SetStartTime(long start) {
+      StartTime = start;
+      RawTime = EndTime - start;
+      // Scale millisecond to micro
+      Time = RawTime / 1000.0;
+    }
+
     public void ComputeTime() {
       Threads = new List<ProfileThread>();
 
@@ -110,22 +73,17 @@ namespace PerformanceLog {
         return;
       }
 
+      int threadNodeId = Owner.Threadppid;
+      int gcNodeId = Owner.ScriptGC_STEP;
+
       int prevDepth = 0, parent = 0;
       ProfileThread thread = null;
 
       var depthToParent = new int[MaxDepth + 1];
 
-      int threadNodeId = Owner.Threadppid;
-
       for (int i = 1; i < Calls.Length; i++) {
         int depth = Calls[i].Depth;
         var time = Calls[i].Time;
-        var callCount = Calls[i].CallCount;
-        string name = Owner.ppMap[Calls[i].ppid];
-
-        if (depth == 1) {
-          TotalTime += time;
-        }
 
         if (Calls[i].ppid == threadNodeId) {
           // Set the node count for the previous thread
@@ -146,6 +104,7 @@ namespace PerformanceLog {
           parent = Math.Max(i - 1, 0);
           Debug.Assert(Calls[parent].Depth == depth - 1);
           depthToParent[depth] = parent;
+
         } else if (depth < prevDepth) {
           parent = depthToParent[depth];
 
@@ -156,32 +115,20 @@ namespace PerformanceLog {
         }
 
         if (Owner.IdleNodes.Contains(Calls[i].ppid)) {
-          TotalTime -= time;
-          IdleTime += time;
-          IdleCount++;
-
+          if (thread != null) {
+            thread.AddIdleTime(time, Calls[i].CallCount);
+          }
           SubTime(i, depthToParent);
-          thread.Flags |= ProfileThreadFlag.Idle;
         }
 
-        if (name == "ScriptGC_STEP" && thread.Name != "CollectGarbageJob::Run") {
-          //Lift out the GC nodes so they don't distort actual CPU costs when analysing
-          GCTime += time;
-          GCCount += callCount;
-          thread.Flags |= ProfileThreadFlag.GCStep;
-
-          /* Subtract time from all the parents of this Node */
-          for (int parentI = depth; parentI >= 0; parentI--) {
-            var j = depthToParent[parentI];
-            int parentTime = (int)Calls[j].Time - (int)time;
-            Debug.Assert(j == 0 || parentTime >= -1000);
-            Calls[j].Time = (uint)Math.Max(parentTime, 0); ;
-
-            parentTime = (int)Calls[j].ExclusiveTime - (int)time;
-            Debug.Assert(j == 0 || parentTime >= -5100);
-            Calls[j].ExclusiveTime = (uint)Math.Max(parentTime, 0);
+        if (Calls[i].ppid == gcNodeId && thread.Name != "CollectGarbageJob::Run") {
+          if (thread != null) {
+            // Lift out the GC nodes so they don't distort actual CPU costs when analysing
+            thread.AddGCTime(time, Calls[i].CallCount);
           }
-          //subTime += time;
+
+          // Subtract time from all the parents of this Node
+          SubTime(i, depthToParent);
         }
 
         /* Round*/
@@ -195,11 +142,6 @@ namespace PerformanceLog {
           newTime = 0;
         }
         Calls[parent].ExclusiveTime = (uint)newTime;
-
-        if (true) {
-
-        }
-
         Debug.Assert(parent == 0 || parent == thread.StartIndex || (Calls[parent].ExclusiveTime >= 0));
 
         prevDepth = depth;
@@ -218,7 +160,7 @@ namespace PerformanceLog {
         var j = depthToParent[depth];
         int parentTime = (int)Calls[j].Time - (int)time;
         Debug.Assert(j == 0 || parentTime >= -1000);
-        Calls[j].Time = (uint)Math.Max(parentTime, 0); ;
+        Calls[j].Time = (uint)Math.Max(parentTime, 0);
 
         if (depth == startDepth) {
           parentTime = (int)Calls[j].ExclusiveTime - (int)time;
@@ -259,7 +201,7 @@ namespace PerformanceLog {
         EntryPointIndex = entryPoint,
       };
 
-      if (ownerId == Owner.ServerGameUpdateId) {
+      if (ownerId == Owner.ServerGameUpdateId || ownerId == Owner.ClientGameUpdateId) {
         thread.Flags |= ProfileThreadFlag.MainThread;
         MainThread = thread;
       }
@@ -329,18 +271,5 @@ namespace PerformanceLog {
 
       return buf.ToString();
     }
-
-    public double TotalTimeMS => TotalTime * 1000000;
-
-    public uint GameTime => Sections[(int)PSectionId.Game].Time;
-    public double GameRatio => GameTime / TotalTimeMS;
-
-    public uint EngineTime => Sections[(int)PSectionId.Engine].Time;
-    public double EngineRatio => EngineTime / TotalTimeMS;
-
-    public uint RenderingTime => Sections[(int)PSectionId.Rendering].Time;
-    public double RenderingRatio => RenderingTime / TotalTimeMS;
-
-    public ProfileThread MainThread { get; private set; }
   }
 }

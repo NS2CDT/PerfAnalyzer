@@ -197,6 +197,27 @@ namespace PerformanceLog {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ulong readVarInt64() {
+      unchecked {
+        if (BufferHasBytes(8)) {
+          byte v = *_buffPtr++;
+          ulong result = (v & 0x7Fu);
+
+          int shift = 0;
+          while ((v & 0x80u) != 0) {
+            v = *_buffPtr++;
+            shift += 7;
+            result += (v & 0x7Fu) << shift;
+          }
+
+          return result;
+        } else {
+          return ReadVarIntSlow();
+        }
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SkipVarInt() {
       unchecked {
         if (BufferHasBytes(4)) {

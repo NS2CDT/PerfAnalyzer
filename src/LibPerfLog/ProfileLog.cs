@@ -1,4 +1,3 @@
-using MoreLinq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MoreLinq;
 
 namespace PerformanceLog {
 
@@ -59,23 +59,24 @@ namespace PerformanceLog {
     public float Ratio;
   };
 
-  public class PNodeStats {
+  public class PerfNodeStats {
     public string Name { get; }
     public int Id { get; }
     public ProfileLog Owner { get; }
-    public PNodeStats Parent { get; set; }
+    public PerfNodeStats Parent { get; set; }
 
     public double TotalTime { get; set; }
     public double TotalExclusiveTime { get; set; }
     public double AvgExclusiveTime { get; set; }
     public double MaxAvgExclusiveTime { get; set; }
+    public double PeakFrameTime { get; internal set; }
 
     public long CallCount { get; set; }
     public double AvgCallCount { get; set; }
     public int NodeCount { get; set; }
     public int FrameCount { get; internal set; }
 
-    public PNodeStats(ProfileLog owner, string name, int id) {
+    public PerfNodeStats(ProfileLog owner, string name, int id) {
       Owner = owner;
       Name = name;
       Id = id;
@@ -90,7 +91,13 @@ namespace PerformanceLog {
       if (nodeCount != 0) {
         AvgCallCount = CallCount / nodeCount;
       }
+    }
 
+    internal void SetStats(ProfileLog.NodeInfo stats) {
+      SetStats(stats.TotalExclusiveTime, stats.PeakAvgTime, stats.CallCount, stats.NodeCount);
+      FrameCount = stats.FrameCount;
+      PeakFrameTime = ToMs(stats.PeakFrameTime);
+      TotalTime = ToMs(stats.TotalTime);
     }
 
     private double ToMs(long time) {
@@ -98,11 +105,11 @@ namespace PerformanceLog {
     }
 
     public override string ToString() {
-      return $"{Name}({Id}) AvgTime: {AvgExclusiveTime} MaxTime: {MaxAvgExclusiveTime} AvgCall{AvgCallCount} Calls: {CallCount}";
+      return $"{Name}({Id}) AvgTime: {AvgExclusiveTime} MaxTime: {MaxAvgExclusiveTime} AvgCall: {AvgCallCount} Calls: {CallCount}";
     }
   }
 
-  public enum PlogEntyType {
+  public enum PlogEntryType {
     Frame,
     NameId,
     Call,
@@ -113,6 +120,7 @@ namespace PerformanceLog {
 
   public class ProfileLog {
     public int Version { get; private set; }
+    public string FilePath { get; private set; }
 
     public Dictionary<int, string> ppMap;
     public Dictionary<string, int> ppLookup;
@@ -121,7 +129,7 @@ namespace PerformanceLog {
     double profileCostPerCall;
 
     public List<ProfileFrame> Frames { get; private set; }
-    public List<PNodeStats> NodeStats { get; private set; }
+    public List<PerfNodeStats> NodeStats { get; private set; }
 
     public HashSet<int> IdleNodes { get; private set; }
     public HashSet<int> NetMsgIds { get; private set; }
@@ -135,7 +143,8 @@ namespace PerformanceLog {
     public int WaitForWorldJobId { get; private set; }
     public int WaitForGPUId { get; private set; }
     public object TotalNodes { get; private set; }
-    public Dictionary<int, PNodeStats> NodeLookup { get; private set; }
+    public Dictionary<int, PerfNodeStats> NodeLookup { get; private set; }
+    public int ClientGameUpdateId { get; internal set; }
 
     public ProfileLog() {
       ppMap = new Dictionary<int, string>();
@@ -147,7 +156,7 @@ namespace PerformanceLog {
       Load(filePath);
     }
 
-    public List<PNodeStats> GetMatchingNodes(string label) {
+    public List<PerfNodeStats> GetMatchingNodes(string label) {
       var nodeIds = GetMatchNames(label);
 
       return NodeStats.Where(n => nodeIds.Contains(n.Id)).ToList();
@@ -166,22 +175,23 @@ namespace PerformanceLog {
     }
 
     internal void Load(string filePath) {
-      var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-      reader = new FastBinaryReader(stream);
+      FilePath = filePath;
+      var logName = Path.GetFileName(filePath);
 
-      Version = reader.ReadByte();
-      profileCostPerCall = readVarInt() * 1E-12;
+      using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+        reader = new FastBinaryReader(stream);
 
-      var name = Path.GetFileName(filePath);
+        Version = reader.ReadByte();
+        profileCostPerCall = readVarInt() * 1E-12;
 
-      using (new Timer("Parse plog: " + name)) {
-        ParseLoop();
+        using (new Timer("Parse plog: " + logName)) {
+          ParseLoop();
+        }
       }
-
 
       ProcessNameIds();
 
-      using (new Timer("ComputeTimes plog: " + name)) {
+      using (new Timer("ComputeTimes plog: " + logName)) {
 #if true
         Parallel.ForEach(Frames, f => f.ComputeTime());
 #else
@@ -234,11 +244,11 @@ namespace PerformanceLog {
 
       while ((int)reader.TotalRead < Length) {
         byte typeByte = reader.ReadByte();
-        var type = (PlogEntyType)(typeByte >> 5);
+        var type = (PlogEntryType)(typeByte >> 5);
 
 
         switch (type) {
-          case PlogEntyType.Frame:
+          case PlogEntryType.Frame:
             depth = 1;
 
             if (lastFrame != null) {
@@ -252,20 +262,20 @@ namespace PerformanceLog {
               Array.Copy(calls, compacted, callNodeCount);
               callNodeCount = 0;
             }
-            frame = ReadFrame();
+            frame = ReadFrame(frame);
 
             Frames.Add(frame);
             lastFrame = frame;
             break;
 
-          case PlogEntyType.NameId:
+          case PlogEntryType.NameId:
             int ppId = reader.ReadPPId(typeByte);
             name = readString();
             ppMap.Add(ppId, name);
             break;
 
-          case PlogEntyType.Call:
-          case PlogEntyType.CallAndDepthInc:
+          case PlogEntryType.Call:
+          case PlogEntryType.CallAndDepthInc:
 
             calls[callNodeCount].ppid = reader.ReadPPId(typeByte);
             calls[callNodeCount].Depth = (ushort)depth;
@@ -281,22 +291,21 @@ namespace PerformanceLog {
               calls = newList;
             }
 
-            maxDepth = Math.Max(maxDepth, depth);
-
-            if (type == PlogEntyType.CallAndDepthInc) {
+            if (type == PlogEntryType.CallAndDepthInc) {
               depth++;
+              maxDepth = Math.Max(maxDepth, depth);
             }
             break;
 
-          case PlogEntyType.CallDepthDec:
+          case PlogEntryType.CallDepthDec:
             if (callNodeCount != 0) {
               // calls[callNodeCount - 1].listPosition = 1;
             }
-            Debug.Assert((depth - 1) >= 0);
+            //Debug.Assert((depth-1) >= 0);
             depth = Math.Max(depth - 1, 0);
             break;
 
-          case PlogEntyType.NetworkStats:
+          case PlogEntryType.NetworkStats:
             ReadNetworkStats();
             break;
 
@@ -332,14 +341,15 @@ namespace PerformanceLog {
         }
       }
 
-      uint ppid;
-
-      ScriptGC_STEP = GetNameId("ScriptGC_STEP");
       Threadppid = GetNameId("Thread");
       Debug.Assert(Threadppid != -1);
+
+      ScriptGC_STEP = GetNameId("ScriptGC_STEP");
+
       HeapFreeId = GetNameId("HeapAllocator::Free");
       HeapAllocateId = GetNameId("HeapAllocator::Allocate");
       ServerGameUpdateId = GetNameId("ServerGame::Update");
+      ClientGameUpdateId = GetNameId("ClientGame::Update");
 
       WaitForGCJobId = GetNameId("ClientGame::FinishRendering (wait for GC job)");
       WaitForWorldJobId = GetNameId("ClientGame::Update (wait for update world job to finish)");
@@ -353,7 +363,7 @@ namespace PerformanceLog {
       }
     }
 
-    struct NodeInfo {
+    public struct NodeInfo {
       public long TotalTime;
       public long TotalExclusiveTime;
       public long CallCount;
@@ -370,11 +380,12 @@ namespace PerformanceLog {
         result.TotalExclusiveTime += b.TotalExclusiveTime;
         result.NodeCount += b.NodeCount;
         result.PeakAvgTime = Math.Max(result.PeakAvgTime, b.PeakAvgTime);
+        result.PeakFrameTime = Math.Max(result.PeakFrameTime, b.PeakFrameTime);
         return result;
       }
     }
 
-    public List<PNodeStats> GetStatsForRange(int start, int end) {
+    public List<PerfNodeStats> GetStatsForRange(int start, int end) {
 
       var list = new NodeInfo[ppLookup.Count];
 
@@ -398,7 +409,6 @@ namespace PerformanceLog {
 
           var nodeAvg = exclusiveTime / (double)calls[i].CallCount;
           list[id].PeakAvgTime = Math.Max(nodeAvg, nodeAvg);
-
           list[id].PeakFrameTime = Math.Max(calls[i].ExclusiveTime, list[id].PeakFrameTime);
         }
 
@@ -408,7 +418,7 @@ namespace PerformanceLog {
         }
       }
 
-      var nodeStats = new List<PNodeStats>(ppLookup.Count - NetMsgIds.Count);
+      var nodeStats = new List<PerfNodeStats>(ppLookup.Count - NetMsgIds.Count);
 
       Debug.Assert(Threadppid == 1);
       //Skip the shared Frame Thread node
@@ -419,28 +429,19 @@ namespace PerformanceLog {
           continue;
         }
 
-        var node = new PNodeStats(this, name, i);
-        node.SetStats(list[i].TotalExclusiveTime, list[i].PeakAvgTime, list[i].CallCount, list[i].NodeCount);
-        node.FrameCount = list[i].FrameCount;
-        node.TotalTime = list[i].TotalTime;
+        var node = new PerfNodeStats(this, name, i);
+        node.SetStats(list[i]);
         nodeStats.Add(node);
       }
 
       return nodeStats;
     }
 
-    public struct NodeFrameEntry {
-      public uint RawTime;
-      public int Index;
-      public uint CallCount;
-      public double Percent;
-    }
-
-    public uint[] GetNodeTimes(int nodeId, int start = 0, int end = -1) {
+    public int[] GetNodeTimes(int nodeId, int start = 0, int end = -1) {
 
       var stats = NodeLookup[nodeId];
       end = end == -1 ? Frames.Count : end;
-      var result = new uint[end - start];
+      var result = new int[end - start];
 
       for (int j = start; j < end; j++) {
         var calls = Frames[j].Calls;
@@ -450,7 +451,7 @@ namespace PerformanceLog {
           var exclusiveTime = calls[i].ExclusiveTime;
 
           if (id == nodeId) {
-            result[j] = calls[i].ExclusiveTime;
+            result[j] = (int)calls[i].ExclusiveTime;
             break;
           }
         }
@@ -459,6 +460,12 @@ namespace PerformanceLog {
       return result;
     }
 
+    public struct NodeFrameEntry {
+      public uint RawTime;
+      public int Index;
+      public uint CallCount;
+      public double Percent;
+    }
 
     public List<NodeFrameEntry> GetNodeFrameStats(int nodeId) {
 
@@ -484,9 +491,9 @@ namespace PerformanceLog {
           }
 
           if (id == nodeId) {
-            curr.RawTime = calls[i].ExclusiveTime;
-            curr.CallCount = calls[i].CallCount;
-            curr.Percent = calls[i].ExclusiveTime / (double)frame.Threads[threadI].Time;
+            curr.RawTime += calls[i].ExclusiveTime;
+            curr.CallCount += calls[i].CallCount;
+            curr.Percent += calls[i].ExclusiveTime / (double)frame.Threads[threadI].Time;
           }
         }
         result.Add(curr);
@@ -496,12 +503,17 @@ namespace PerformanceLog {
     }
 
     uint frameCount = 0;
+    ulong firstTime = 0;
 
-    private ProfileFrame ReadFrame() {
+    private ProfileFrame ReadFrame(ProfileFrame prev) {
 
       frameCount += 1;
-      var totalTime = readVarInt() / 1000000.0;
+      var endTime = reader.readVarInt64();
       int sectionCount = reader.ReadByte();
+
+      if (firstTime == 0) {
+        firstTime = endTime;
+      }
 
       var sections = new ProfileSection[sectionCount];
 
@@ -511,11 +523,17 @@ namespace PerformanceLog {
 
         sections[i] = new ProfileSection() {
           Time = sectionTime,
-          Ratio = (float)(sectionTime / totalTime),
+          Ratio = 0,
         };
       }
 
-      return new ProfileFrame(this, frameCount, totalTime, sections);
+      var frame = new ProfileFrame(this, frameCount, (long)endTime, sections);
+
+      if (prev != null) {
+        frame.SetStartTime(prev.EndTime);
+      }
+
+      return frame;
     }
 
     void ReadNetworkStats() {

@@ -250,6 +250,23 @@ namespace PerformanceLog {
       return index != -1 ? Calls[index] : default(CallRecord);
     }
 
+    public PerfNodeStats GetPeakNode() {
+      int peakIndex = -1;
+      uint peak = 0;
+
+      for (int i = 1; i < Calls.Length; i++) {
+
+        if (Calls[i].ExclusiveTime > peak) {
+          peak = Calls[i].ExclusiveTime;
+          peakIndex = i;
+        }
+      }
+
+      var node = new PerfNodeStats(Owner, Owner.ppMap[Calls[peakIndex].ppid], Calls[peakIndex].ppid);
+      node.SetStats(Calls[peakIndex].ExclusiveTime, Calls[peakIndex].ExclusiveTime/ Calls[peakIndex].CallCount, Calls[peakIndex].CallCount, 1);
+      return node;
+    }
+
     public string NodesString {
       get {
         return GetNodeString(0, Calls.Length);
@@ -271,6 +288,10 @@ namespace PerformanceLog {
       }
 
       return buf.ToString();
+    }
+
+    public override string ToString() {
+      return $"Time: {Time:F3}ms Id:{FrameIndex}";
     }
   }
 }

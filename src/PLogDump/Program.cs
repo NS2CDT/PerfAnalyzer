@@ -5,18 +5,31 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Tababular;
+using MoreLinq;
 
 namespace PLogDump {
 
   class Program {
     static void Main(string[] args) {
+      string path = "";
 
       if (args.Length == 0) {
-        Console.Error.WriteLine("Expected plog path");
-        return;
-      }
+        string appdata = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Natural Selection 2");
+        var plogs = new DirectoryInfo(appdata).EnumerateFiles("*.plog").ToList();
+        var newestPlog = plogs.MaxBy(f => f.CreationTime);
 
-      var path = args[0];
+        if (plogs.Count == 0) {
+          Console.Error.WriteLine("Expected plog path");
+          return;
+        } else {
+          Console.WriteLine("No plog path provided defaulting to loading last created plog in %appdata%/Natural Selection 2");
+        }
+
+        path = Path.Combine(appdata, newestPlog.Name);
+
+      } else {
+        path = args[0];
+      }
 
       if (!File.Exists(path)) {
         Console.Error.WriteLine($"plog file '{path}' doesn't exist");

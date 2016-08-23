@@ -169,6 +169,7 @@ namespace PerformanceLog {
     CallAndDepthInc,
     CallDepthDec,
     NetworkStats,
+    Extended,
   }
 
   public class ProfileLog {
@@ -377,12 +378,39 @@ namespace PerformanceLog {
             ReadNetworkStats();
             break;
 
+          case PlogEntryType.Extended:
+            var id = (ExtendedSection)((reader.ReadByte() << 5) | (typeByte & 0xF));
+            ReadExtenedSection(id);
+            break;
+
           default:
             throw new Exception("Unknown profile section");
         }
       }
 
       return;
+    }
+
+
+    enum ExtendedSection {
+      SectionEnd,
+      Markers,
+    }
+
+    private void ReadExtenedSection(ExtendedSection id) {
+
+      if (id == ExtendedSection.Markers) {
+        var count = reader.readVarInt();
+
+        for (int i = 0; i < count; i++) {
+          var kind = reader.readVarInt();
+          var threadId = reader.ReadByte();
+          var userValue = reader.readVarInt();
+          var labelId = reader.readVarInt();
+          var label = labelId != 0 ? ppMap[(int)labelId] : "";
+          var timeStamp = reader.readVarInt64();
+        }
+      }
     }
 
     private void ProcessNameIds() {

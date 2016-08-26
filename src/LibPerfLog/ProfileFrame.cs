@@ -23,6 +23,7 @@ namespace PerformanceLog {
 
     public ProfileSection[] Sections;
     public CallRecord[] Calls;
+    public ProfileMarker[] Markers;
 
     public ProfileThread MainThread { get; private set; }
     public List<ProfileThread> Threads { get; private set; }
@@ -31,6 +32,8 @@ namespace PerformanceLog {
 
     public uint FrameIndex { get; private set; }
     public ProfileLog Owner { get; private set; }
+    public ProfileFrame PrevFrame => Owner.Frames[(int)FrameIndex - 1];
+    public ProfileFrame NextFrame => Owner.Frames[(int)FrameIndex +1];
 
     public double TotalTimeMS => TotalTime * 1000000;
     public double StartTimeMS => StartTime / 1000.0;
@@ -50,6 +53,8 @@ namespace PerformanceLog {
       FrameIndex = frameIndex;
       EndTime = startTime;
       Sections = sections;
+      Calls = Array.Empty<CallRecord>();
+      Markers = Array.Empty<ProfileMarker>();
     }
 
     internal void SetCalls(CallRecord[] calls, int callCount) {
@@ -60,6 +65,7 @@ namespace PerformanceLog {
     }
 
     internal void SetStartTime(long start) {
+      Debug.Assert(start < EndTime);
       StartTime = start;
       RawTime = EndTime - start;
       // Scale millisecond to micro

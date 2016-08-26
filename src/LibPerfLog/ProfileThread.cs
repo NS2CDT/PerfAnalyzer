@@ -59,7 +59,7 @@ namespace PerformanceLog {
     }
 
     public override string ToString() {
-      return $"Thread({Name}) Time: {TimeMs:3.5}ms Nodes: {NodeCount}";
+      return $"Thread({Name}) Time: {TimeMs:F3}ms Nodes: {NodeCount}";
     }
 
     internal void AddIdleTime(uint time, uint count) {

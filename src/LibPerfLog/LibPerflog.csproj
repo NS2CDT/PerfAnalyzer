@@ -47,7 +47,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExternsionMethods.cs" />
     <Compile Include="FastBinaryReader.cs" />
+    <Compile Include="ListSlice.cs" />
     <Compile Include="NetworkNodes.cs" />
     <Compile Include="ProfileFrame.cs" />
     <Compile Include="ProfileLog.cs" />

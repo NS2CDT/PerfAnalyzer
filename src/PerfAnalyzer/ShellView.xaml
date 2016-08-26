@@ -1,0 +1,36 @@
+<Window x:Class="PerfAnalyzer.ShellView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:cal="http://www.caliburnproject.org"
+        xmlns:local="clr-namespace:PerfAnalyzer"
+        mc:Ignorable="d"
+        Title="{Binding Title}" Height="700" Width="1500">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="20"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="20" />
+    </Grid.RowDefinitions>
+
+    <Menu IsMainMenu="True" Grid.Row="0" Height="20" Margin="0,0,10,0" VerticalAlignment="Top">
+      <MenuItem Header="_File">
+        <MenuItem Header="Open PLog" cal:Message.Attach="OpenPickProfileLog()"/>
+        <MenuItem Header="Close Log" cal:Message.Attach="CloseCurrentLog()"/>
+        <local:RecentFileList x:Name="RecentLogs"/>
+      </MenuItem>
+    </Menu>
+
+    <TabControl x:Name="Items" Grid.Row="1">
+      <TabControl.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding DisplayName}" />
+          </StackPanel>
+        </DataTemplate>
+      </TabControl.ItemTemplate>
+    </TabControl>
+    <StatusBar Grid.Row="2" x:Name="Status"  HorizontalAlignment="Stretch" Height="20" VerticalAlignment="Bottom"/>
+  </Grid>
+</Window>

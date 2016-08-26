@@ -207,13 +207,30 @@ namespace PerformanceLog {
           while ((v & 0x80u) != 0) {
             v = *_buffPtr++;
             shift += 7;
-            result += (v & 0x7Fu) << shift;
+            result += ((ulong)(v & 0x7Fu)) << shift;
           }
 
           return result;
         } else {
-          return ReadVarIntSlow();
+          return ReadVarInt64Slow();
         }
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public ulong ReadVarInt64Slow() {
+      unchecked {
+        byte v = ReadByte();
+        ulong result = (v & 0x7Fu);
+
+        int shift = 0;
+        while ((v & 0x80u) != 0) {
+          v = ReadByte();
+          shift += 7;
+          result += ((ulong)(v & 0x7Fu)) << shift;
+        }
+
+        return result;
       }
     }
 

@@ -11,6 +11,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace PerfAnalyzer {
   [Export(typeof(FrameTimeViewModel))]
@@ -18,6 +20,9 @@ namespace PerfAnalyzer {
     public LinearAxis LeftAxis { get; private set; }
     public LinearAxis BottomAxis { get; private set; }
     public LineSeries FrameTimeSeries { get; private set; }
+    public LineSeries SelectedTimeSeries { get; private set; }
+    public PlotRangeTracker Ranges { get; private set; }
+    public PlotDownsampler DownSampler { get; private set; }
 
     [Import]
     public IEventAggregator Events { get; set; }
@@ -79,6 +84,7 @@ namespace PerfAnalyzer {
 
       FrameTimeSeries = new LineSeries {
         Title = "Frame",
+        StrokeThickness = 1,
        // DataFieldX = nameof(FrameEntry.Time),
         //DataFieldY = nameof(FrameEntry.TimeTaken),
       };
@@ -87,11 +93,15 @@ namespace PerfAnalyzer {
 
       SelectedTimeSeries = new LineSeries {
         Title = "Selected",
-        // DataFieldX = nameof(FrameEntry.Time),
-        //DataFieldY = nameof(FrameEntry.TimeTaken),
+        StrokeThickness = 1,
+        Color = OxyColors.Red,
       };
 
+      DownSampler = new PlotDownsampler();
+
       Model.Series.Add(SelectedTimeSeries);
+      DownSampler.AddSeries(SelectedTimeSeries, this.OnPropertyChanges(n => SelectedNode).Select(n => GetNodeDataPoints(n)));
+      DownSampler.AddSeries(FrameTimeSeries, this.OnPropertyChanges(n => FrametimePoints));
 
       Ranges = PlotRangeTracker.Install(Model);
 
@@ -131,10 +141,6 @@ namespace PerfAnalyzer {
         long start = PLog.StartTime;
         frames = PLog.Frames.Select(f => new DataPoint(f.EndTimeMS, f.Time)).ToList();
 
-        if (frames.Count > 10000) {
-          //frames = LargestTriangleThreeBuckets(frames, 10000);
-        }
-
         var markedFrames = PLog.Frames.
                            Where(f => f.Markers.Any(m => m.Kind == MarkerKind.LUA_TRACESFLUSHED)).
                            Select(f => new {
@@ -159,8 +165,9 @@ namespace PerfAnalyzer {
         frames = new List<DataPoint>();
       }
 
-      FrameTimeSeries.ItemsSource = frames;
-      LeftAxis.Zoom(0, 30);
+      FrametimePoints = frames;
+
+      LeftAxis.Zoom(0, 60);
       BottomAxis.ZoomAt(1, 0);
       Model.InvalidatePlot(true);
     }
@@ -188,6 +195,53 @@ namespace PerfAnalyzer {
       }
     }
 
+    private List<DataPoint> _rawFrametimePoints;
+
+    public List<DataPoint> FrametimePoints {
+      get {
+        return _rawFrametimePoints;
+      }
+
+      set {
+        _rawFrametimePoints = value;
+        NotifyOfPropertyChange();
+      }
+    }
+
+    public bool DownsampleGraph {
+      get {
+        return DownSampler.Downsample;
+      }
+
+      set {
+        DownSampler.Downsample = value;
+        NotifyOfPropertyChange();
+      }
+    }
+
+    public int DownsampleLimit {
+      get {
+        return DownSampler.DownsampleLimit;
+      }
+
+      set {
+        DownSampler.DownsampleLimit = value;
+        NotifyOfPropertyChange();
+      }
+    }
+
+    private List<DataPoint> GetNodeDataPoints(PerfNodeStats node) {
+      if (node != null) {
+        var frameStats = PLog.GetNodeFrameStats(node.Id);
+        long start = PLog.StartTime;
+        return frameStats.
+               Select(f => new DataPoint(f.Frame.EndTimeMS, f.Time)).
+               ToList();
+      } else {
+        return new List<DataPoint>();
+      }
+    }
+
     private PerfNodeStats _selectedNode;
 
     public PerfNodeStats SelectedNode {
@@ -196,16 +250,7 @@ namespace PerfAnalyzer {
       }
 
       set {
-        if (value != null) {
-          var frameStats = PLog.GetNodeFrameStats(value.Id);
-          long start = PLog.StartTime;
-          SelectedTimeSeries.ItemsSource = frameStats.
-            Select(f => new DataPoint(f.Frame.EndTimeMS, f.Time)).
-            ToList();
-        }
         _selectedNode = value;
-        Model.InvalidatePlot(true);
-
         NotifyOfPropertyChange();
       }
     }
@@ -231,72 +276,6 @@ namespace PerfAnalyzer {
       }
     }
 
-    public PlotRangeTracker Ranges { get; private set; }
-    public LineSeries SelectedTimeSeries { get; private set; }
 
-    public static List<DataPoint> LargestTriangleThreeBuckets(List<DataPoint> data, int threshold) {
-      int dataLength = data.Count;
-      if (threshold >= dataLength || threshold == 0)
-        return data; // Nothing to do
-
-      List<DataPoint> sampled = new List<DataPoint>(threshold);
-
-      // Bucket size. Leave room for start and end data points
-      double every = (double)(dataLength - 2) / (threshold - 2);
-
-      int a = 0;
-      DataPoint maxAreaPoint = new DataPoint(0, 0);
-      int nextA = 0;
-
-      sampled.Add(data[a]); // Always add the first point
-
-      for (int i = 0; i < threshold - 2; i++) {
-        // Calculate point average for next bucket (containing c)
-        double avgX = 0;
-        double avgY = 0;
-        int avgRangeStart = (int)(Math.Floor((i + 1) * every) + 1);
-        int avgRangeEnd = (int)(Math.Floor((i + 2) * every) + 1);
-        avgRangeEnd = avgRangeEnd < dataLength ? avgRangeEnd : dataLength;
-
-        int avgRangeLength = avgRangeEnd - avgRangeStart;
-
-        for (; avgRangeStart < avgRangeEnd; avgRangeStart++) {
-          avgX += data[avgRangeStart].X; // * 1 enforces Number (value may be Date)
-          avgY += data[avgRangeStart].Y;
-        }
-        avgX /= avgRangeLength;
-
-        avgY /= avgRangeLength;
-
-        // Get the range for this bucket
-        int rangeOffs = (int)(Math.Floor((i + 0) * every) + 1);
-        int rangeTo = (int)(Math.Floor((i + 1) * every) + 1);
-
-        // Point a
-        double pointAx = data[a].X; // enforce Number (value may be Date)
-        double pointAy = data[a].Y;
-
-        double maxArea = -1;
-
-        for (; rangeOffs < rangeTo; rangeOffs++) {
-          // Calculate triangle area over three buckets
-          double area = Math.Abs((pointAx - avgX) * (data[rangeOffs].Y - pointAy) -
-                                 (pointAx - data[rangeOffs].X) * (avgY - pointAy)
-                            ) * 0.5;
-          if (area > maxArea) {
-            maxArea = area;
-            maxAreaPoint = data[rangeOffs];
-            nextA = rangeOffs; // Next a is this b
-          }
-        }
-
-        sampled.Add(maxAreaPoint); // Pick this point from the bucket
-        a = nextA; // This a is the next a (chosen b)
-      }
-
-      sampled.Add(data[dataLength - 1]); // Always add last
-
-      return sampled;
-    }
   }
 }

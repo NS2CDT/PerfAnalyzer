@@ -113,7 +113,12 @@ namespace PerfAnalyzer {
     private void Plot_MouseUp(object sender, OxyMouseEventArgs e) {
 
       if (MouseMoveState == MoveState.CreatingRange) {
-        RangeCreated?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
+        // Don't create the range if it does not have a size set
+        if (_activeRange.MinimumX != _activeRange.MaximumX) {
+          RangeCreated?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
+        } else {
+          SetRanges.Remove(_activeRange);
+        }
       }
 
       MouseMoveState = MoveState.None;

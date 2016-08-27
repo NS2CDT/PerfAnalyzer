@@ -13,8 +13,8 @@
       <ColumnDefinition Width="269*"/>
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
-      <RowDefinition Height="35*"/>
-      <RowDefinition Height="416*"/>
+      <RowDefinition Height="33*"/>
+      <RowDefinition Height="467*"/>
     </Grid.RowDefinitions>
     <oxy:PlotView x:Name="FrameTime" Model="{Binding Model}" Grid.Row="1" Grid.Column="0" Margin="10"/>
 
@@ -26,5 +26,7 @@
         <DataGridTextColumn Header="TotalExcl" Binding="{Binding TotalExclusiveTime, StringFormat=\{0:F2\}}" Width="80"/>
       </DataGrid.Columns>
     </DataGrid>
+    <Slider x:Name="DownsampleLimit" HorizontalAlignment="Left" Margin="275,10,0,0" VerticalAlignment="Top" Width="141" Height="22" Minimum="10" Maximum="2000"/>
+    <CheckBox x:Name="DownsampleGraph" Content="Downsample Graph" HorizontalAlignment="Left" Margin="135,10,0,0" VerticalAlignment="Top" Height="16" Width="124"/>
   </Grid>
 </UserControl>

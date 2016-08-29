@@ -9,12 +9,12 @@
              d:DesignHeight="500" d:DesignWidth="1300">
   <Grid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="731*"/>
-      <ColumnDefinition Width="269*"/>
+      <ColumnDefinition Width="44*"/>
+      <ColumnDefinition Width="21*"/>
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
-      <RowDefinition Height="33*"/>
-      <RowDefinition Height="467*"/>
+      <RowDefinition Height="9*"/>
+      <RowDefinition Height="116*"/>
     </Grid.RowDefinitions>
     <oxy:PlotView x:Name="FrameTime" Model="{Binding Model}" Grid.Row="1" Grid.Column="0" Margin="10"/>
 
@@ -22,11 +22,13 @@
               AutoGenerateColumns="False" SelectedItem="{Binding SelectedNode}" IsReadOnly="True">
       <DataGrid.Columns>
         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="170" />
-        <DataGridTextColumn Header="AvgExcl" Binding="{Binding AvgExclusiveTime, StringFormat=\{0:F2\}}" Width="80" SortDirection="Descending"/>
-        <DataGridTextColumn Header="TotalExcl" Binding="{Binding TotalExclusiveTime, StringFormat=\{0:F2\}}" Width="80"/>
+        <DataGridTextColumn Header="AvgExcl" Binding="{Binding AvgExclusiveTime, StringFormat=\{0:F2\}}" Width="50" SortDirection="Descending"/>
+        <DataGridTextColumn Header="TotalExcl" Binding="{Binding TotalExclusiveTime, StringFormat=\{0:F2\}}" Width="70"/>
+        <DataGridTextColumn Header="FramePeak" Binding="{Binding PeakFrameTime, StringFormat=\{0:F2\}}" Width="80"/>
       </DataGrid.Columns>
     </DataGrid>
-    <Slider x:Name="DownsampleLimit" HorizontalAlignment="Left" Margin="275,10,0,0" VerticalAlignment="Top" Width="141" Height="22" Minimum="10" Maximum="2000"/>
-    <CheckBox x:Name="DownsampleGraph" Content="Downsample Graph" HorizontalAlignment="Left" Margin="135,10,0,0" VerticalAlignment="Top" Height="16" Width="124"/>
+    <Slider x:Name="DownsampleLimit" HorizontalAlignment="Left" Margin="273,7,0,0" VerticalAlignment="Top" Width="195" Height="22" Minimum="10" Maximum="2000"/>
+    <CheckBox x:Name="DownsampleGraph" Content="Downsample Graph" HorizontalAlignment="Left" Margin="129,13,0,0" VerticalAlignment="Top" Height="16" Width="124"/>
+    <TextBox x:Name="NodeFilter" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Left" Margin="40,7,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="281" Height="22"/>
   </Grid>
 </UserControl>

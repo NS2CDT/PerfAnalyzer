@@ -15,6 +15,7 @@ namespace PerfAnalyzer {
     public int RangeLimit { get; set; } = 1;
     public bool CanCreateRanges { get; set; } = true;
     public bool CanChangeRanges { get; set; } = true;
+    public event RangeEvent RangeRemoved;
     public event RangeEvent RangeMoved;
     public event RangeEvent RangeCreated;
 
@@ -118,6 +119,7 @@ namespace PerfAnalyzer {
           RangeCreated?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
         } else {
           SetRanges.Remove(_activeRange);
+          RangeRemoved?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
         }
       }
 

@@ -210,6 +210,7 @@ namespace PerformanceLog {
     public long StartTime { get; private set; }
     public List<ProfileFrame> Frames { get; private set; }
     public List<PerfNodeStats> NodeStats { get; private set; }
+    public Dictionary<int, PerfNodeStats> NodeStatsLookup { get; private set; }
 
     public HashSet<int> IdleNodes { get; private set; }
     public HashSet<int> NetMsgIds { get; private set; }
@@ -223,7 +224,7 @@ namespace PerformanceLog {
     public int WaitForWorldJobId { get; private set; }
     public int WaitForGPUId { get; private set; }
     public object TotalNodes { get; private set; }
-    public Dictionary<int, PerfNodeStats> NodeLookup { get; private set; }
+
     public int ClientGameUpdateId { get; internal set; }
 
     public ProfileLog() {
@@ -257,6 +258,10 @@ namespace PerformanceLog {
       return ppLookup.TryGetValue(name, out ppid) ? ppid : -1;
     }
 
+    public PerfNodeStats GetNodeStats(string name) {
+      return NodeStatsLookup[GetNameId(name)];
+    }
+
     public List<NodeStatsDiff> GetNodeStatsDiff(List<PerfNodeStats> old) {
 
       var result = new List<NodeStatsDiff>(old.Count);
@@ -265,7 +270,7 @@ namespace PerformanceLog {
         var id = GetNameId(node.Name);
 
         if (id != -1) {
-          result.Add(NodeLookup[id].GetDiff(node));
+          result.Add(NodeStatsLookup[id].GetDiff(node));
         }
       }
 
@@ -301,7 +306,7 @@ namespace PerformanceLog {
 
       TotalNodes = Frames.Sum(f => f.Calls.Length);
       NodeStats = GetStatsForRange(0, Frames.Count);
-      NodeLookup = NodeStats.ToDictionary(n => n.Id, n => n);
+      NodeStatsLookup = NodeStats.ToDictionary(n => n.Id, n => n);
 
       /*
             cppNames = ppLookup.Keys.Where(k => k.Contains("::")).ToHashSet();
@@ -344,7 +349,7 @@ namespace PerformanceLog {
             depth = 1;
 
             if (lastFrame != null) {
-              CompleteFrame(lastFrame, calls, callNodeCount, maxDepth);
+              CompleteFrame(calls, callNodeCount, maxDepth);
               maxDepth = callNodeCount = 0;
               _markers.Clear();
             }
@@ -403,7 +408,7 @@ namespace PerformanceLog {
         }
       }
 
-      CompleteFrame(frame, calls, callNodeCount, maxDepth);
+      CompleteFrame(calls, callNodeCount, maxDepth);
 
       return;
     }
@@ -411,6 +416,8 @@ namespace PerformanceLog {
     private bool skippedFirstFrame = false;
     uint frameCount = 0;
     long prevTime = 0;
+
+    private ProfileFrame _currentframe;
 
     private ProfileFrame ReadFrame(ProfileFrame prev) {
 
@@ -435,20 +442,20 @@ namespace PerformanceLog {
         };
       }
 
-      var frame = new ProfileFrame(this, frameCount, endTime, sections);
+      _currentframe = new ProfileFrame(this, frameCount, endTime, sections);
       frameCount++;
 
       if (prev != null) {
-        frame.SetStartTime(prevTime);
+        _currentframe.SetStartTime(prevTime);
       }
       prevTime = endTime;
 
-      return frame;
+      return _currentframe;
     }
 
-    private void CompleteFrame(ProfileFrame frame, CallRecord[] calls, int callCount, int maxDepth) {
+    private void CompleteFrame(CallRecord[] calls, int callCount, int maxDepth) {
 
-      frame.SetCalls(calls, callCount);
+      _currentframe.SetCalls(calls, callCount);
 
       // First frame is bogus with no calls
       if (frameCount == 1 && !skippedFirstFrame) {
@@ -458,13 +465,13 @@ namespace PerformanceLog {
         return;
       }
 
-      Frames.Add(frame);
+      Frames.Add(_currentframe);
 
-      frame.MaxDepth = maxDepth;
+      _currentframe.MaxDepth = maxDepth;
 
 
       if (_markers.Count > 0) {
-        frame.Markers = _markers.ToArray();
+        _currentframe.Markers = _markers.ToArray();
       }
     }
 
@@ -482,7 +489,7 @@ namespace PerformanceLog {
 
         for (int i = 0; i < count; i++) {
           var marker = new ProfileMarker();
-          marker.Frame = Frames.Last();
+          marker.Frame = _currentframe;
           marker.Kind = (MarkerKind)reader.readVarInt();
           marker.ThreadId = reader.ReadByte();
           marker.UserValue = (int)reader.readVarInt();
@@ -688,7 +695,7 @@ namespace PerformanceLog {
 
     public int[] GetNodeTimes(int nodeId, int start = 0, int end = -1) {
 
-      var stats = NodeLookup[nodeId];
+      var stats = NodeStatsLookup[nodeId];
       end = end == -1 ? Frames.Count : end;
       var result = new int[end - start];
 
@@ -716,25 +723,47 @@ namespace PerformanceLog {
       public byte ThreadCount;
       public ushort Index;
       public float Percent;
+      public ulong InclusiveTotal;
 
       public double Time => RawTime * 10 / 1000.0;
+      public double InclusiveTime => InclusiveTotal * 10 / 1000.0;
 
       public override string ToString() {
         return $"{Time:F4}Ms Calls: {CallCount} Frame: {Frame}";
       }
     }
 
-    public List<NodeFrameEntry> GetNodeFrameStats(int nodeId) {
+    public List<NodeFrameEntry> GetNodeFrameStats(int nodeId, int startFrame = -1, int frameCount = -1, int threadId = -1) {
 
-      var stats = NodeLookup[nodeId];
+      var stats = NodeStatsLookup[nodeId];
       var result = new List<NodeFrameEntry>(stats.FrameCount);
 
-      for (int j = 0; j < Frames.Count; j++) {
+      if (startFrame == -1) {
+        startFrame = 0;
+      }
+
+      if (frameCount == -1) {
+        frameCount = Frames.Count;
+      } else {
+        frameCount += startFrame;
+      }
+
+      for (int j = startFrame; j < frameCount; j++) {
         var frame = Frames[j];
         var calls = frame.Calls;
 
         var threadI = 0;
-        int threadLimit = frame.Threads.FirstOrDefault()?.EndIndex ?? 0;
+        var thread = frame.Threads.First();
+
+        //Filter to only nodes that are children of the the thread with the matching name id
+        if (threadId != -1) {
+          thread = frame.Threads.FirstOrDefault(t => t.NameId == threadId);
+          if (thread == null) {
+            continue;
+          }
+        }
+
+        int threadLimit = thread.EndIndex;
 
         var curr = new NodeFrameEntry();
         bool seen = false;
@@ -744,6 +773,9 @@ namespace PerformanceLog {
           var exclusiveTime = calls[i].ExclusiveTime;
 
           if (i == threadLimit) {
+            if (threadId != -1) {
+              break;
+            }
             threadI++;
             threadLimit = frame.Threads[threadI].EndIndex;
           }
@@ -751,6 +783,8 @@ namespace PerformanceLog {
           if (id == nodeId) {
             seen = true;
             curr.Frame = frame;
+            // Inclusive
+            curr.InclusiveTotal += calls[i].Time;
             curr.RawTime += calls[i].ExclusiveTime;
             curr.CallCount += calls[i].CallCount;
             if (curr.LastThread != threadI) {
@@ -781,7 +815,7 @@ namespace PerformanceLog {
       var stats = new NodeFrameEntry[nodeIds.Count][];
 
       for (int i = 1; i < nodeIds.Count; i++) {
-        stats[i] = new NodeFrameEntry[NodeLookup[nodeIds[i - 1]].FrameCount];
+        stats[i] = new NodeFrameEntry[NodeStatsLookup[nodeIds[i - 1]].FrameCount];
       }
 
       var count = new int[nodeIds.Count];
@@ -801,9 +835,11 @@ namespace PerformanceLog {
 
           if (slot != 0) {
             int index = count[slot];
-            stats[slot][index].Frame = frame;
-            stats[slot][index].RawTime += calls[i].ExclusiveTime;
-            stats[slot][index].CallCount += calls[i].ExclusiveTime;
+            var array = stats[slot];
+            array[index].InclusiveTotal += calls[i].Time;
+            array[index].Frame = frame;
+            array[index].RawTime += calls[i].ExclusiveTime;
+            array[index].CallCount += calls[i].ExclusiveTime;
 
             // curr.Percent += (float)(calls[i].ExclusiveTime / (double)frame.Threads[threadI].Time);
           }

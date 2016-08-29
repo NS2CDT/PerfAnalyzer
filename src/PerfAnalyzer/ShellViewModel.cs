@@ -26,12 +26,15 @@ namespace PerfAnalyzer {
 
       RecentFiles = Properties.Settings.Default.RecentLogs;
 
-      var lasteOpenTrace = RecentFiles.FirstOrDefault();
+      var startupTrace = RecentFiles.FirstOrDefault()?.Filepath;
 
-      if (lasteOpenTrace != null && lasteOpenTrace.FileExits) {
+      if (Application.Current.Properties["StartupFile"] != null) {
+        startupTrace = (string)Application.Current.Properties["StartupFile"];
+      }
 
+      if (File.Exists(startupTrace)) {
         try {
-          CurrentPLog = new ProfileLog(lasteOpenTrace.Filepath);
+          CurrentPLog = new ProfileLog(startupTrace);
         } catch (Exception e) {
           MessageBox.Show(e.Message + "\n" + e.StackTrace, "Exception while opening ProfileLog");
         }

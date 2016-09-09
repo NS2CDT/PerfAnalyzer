@@ -11,12 +11,11 @@ namespace PLogDump {
 
   class Program {
     static void Main(string[] args) {
+      string appdata = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Natural Selection 2");
       string path = "";
 
       if (args.Length == 0) {
-        string appdata = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Natural Selection 2");
         var plogs = new DirectoryInfo(appdata).EnumerateFiles("*.plog").ToList();
-        var newestPlog = plogs.MaxBy(f => f.CreationTime);
 
         if (plogs.Count == 0) {
           Console.Error.WriteLine("Expected plog path");
@@ -25,6 +24,8 @@ namespace PLogDump {
           Console.WriteLine("No plog path provided defaulting to loading last created plog in %appdata%/Natural Selection 2");
         }
 
+        var newestPlog = plogs.MaxBy(f => f.CreationTime);
+
         path = Path.Combine(appdata, newestPlog.Name);
 
       } else {
@@ -32,8 +33,14 @@ namespace PLogDump {
       }
 
       if (!File.Exists(path)) {
-        Console.Error.WriteLine($"plog file '{path}' doesn't exist");
-        return;
+        var appdataPath = path.IndexOfAny(new char[] { '/', '\\'}) == -1 ?  Path.Combine(appdata, path) : "";
+
+        if (File.Exists(appdataPath)) {
+          path = appdataPath;
+        } else {
+          Console.Error.WriteLine($"plog file '{path}' doesn't exist");
+          return;
+        }
       }
 
       ProfileLog log1, log2;

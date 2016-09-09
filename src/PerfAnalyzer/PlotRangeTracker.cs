@@ -79,6 +79,7 @@ namespace PerfAnalyzer {
 
     private void RemoveRange(RectangleAnnotation range) {
       SetRanges.Remove(range);
+      RangeRemoved?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
       range.MinimumX = 0;
       range.MaximumX = 0;
       Model.InvalidatePlot(false);
@@ -180,6 +181,7 @@ namespace PerfAnalyzer {
 
       if (e.ChangedButton == OxyMouseButton.Left && e.IsControlDown) {
         RemoveRange(_clickedRange);
+        MouseMoveState = MoveState.None;
         e.Handled = true;
         return;
       }
@@ -203,7 +205,7 @@ namespace PerfAnalyzer {
       MouseMoveState = MoveState.None;
 
       //Don't send an event if were being removed
-      if (range.MinimumX != 0 && range.MaximumX != 0) {
+      if (SetRanges.Contains(range) && range.MinimumX != 0 && range.MaximumX != 0) {
         RangeMoved?.Invoke(range, range.MinimumX, range.MaximumX);
       }
     }

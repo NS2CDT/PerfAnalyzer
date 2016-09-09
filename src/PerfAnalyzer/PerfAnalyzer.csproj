@@ -115,6 +115,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AppBootstrapper.cs" />
+    <Compile Include="FrameDetailView.xaml.cs">
+      <DependentUpon>FrameDetailView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="FrameDetailViewModel.cs" />
     <Compile Include="FrameTimeView.xaml.cs">
       <DependentUpon>FrameTimeView.xaml</DependentUpon>
     </Compile>
@@ -126,6 +130,10 @@
     <Compile Include="RecentFileList.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="ShellViewModel.cs" />
+    <Page Include="FrameDetailView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="FrameTimeView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -172,6 +180,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ICSharpCode.TreeView\ICSharpCode.TreeView.csproj">
+      <Project>{dde2a481-8271-4eac-a330-8fa6a38d13d1}</Project>
+      <Name>ICSharpCode.TreeView</Name>
+    </ProjectReference>
     <ProjectReference Include="..\LibPerfLog\LibPerfLog.csproj">
       <Project>{487aa2b3-f8c8-4769-b387-8ce52cf4ec7a}</Project>
       <Name>LibPerfLog</Name>

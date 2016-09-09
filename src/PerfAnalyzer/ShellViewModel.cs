@@ -48,6 +48,10 @@ namespace PerfAnalyzer {
       events.Subscribe(this);
     }
 
+    public void ShowFrameDetails(ProfileFrame frame) {
+      WindowManager.ShowWindow(new FrameDetailViewModel(frame));
+    }
+
     public override void ActivateItem(IScreen item) {
 
       if (item is IHandle) {

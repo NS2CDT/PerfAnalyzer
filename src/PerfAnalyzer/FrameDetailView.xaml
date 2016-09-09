@@ -1,0 +1,49 @@
+<UserControl x:Class="PerfAnalyzer.FrameDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:treeview="http://icsharpcode.net/sharpdevelop/treeview"
+             xmlns:local="clr-namespace:PerfAnalyzer"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="900" Background="DarkBlue">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="23*"/>
+      <RowDefinition Height="137*"/>
+    </Grid.RowDefinitions>
+    <treeview:SharpTreeView x:Name="CallNodeList" Margin="0,68,10,57"
+                                Root="{Binding CallNodes}"
+                                ShowRoot = "False"
+                                SelectedItem="{Binding SelectedNode}" Grid.RowSpan="2" >
+
+    <ListView.View>
+      <treeview:SharpGridView>
+        <GridView.Columns>
+          <GridViewColumn>
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <treeview:SharpTreeNodeView />
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+
+          <GridViewColumn Header="Avg Time">
+            <GridViewColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding ChangeKinds}" />
+              </DataTemplate>
+            </GridViewColumn.CellTemplate>
+          </GridViewColumn>
+        </GridView.Columns>
+      </treeview:SharpGridView>
+    </ListView.View>
+    </treeview:SharpTreeView>
+
+    <StackPanel HorizontalAlignment="Left" Height="25" Margin="305,38,0,0" VerticalAlignment="Top" Width="289" Orientation="Horizontal">
+      <Button x:Name="PrevFrame" Content="Prev Frame" />
+      <Button x:Name="NextFrame" Content="Next Frame"/>
+    </StackPanel>
+  </Grid>
+</UserControl>

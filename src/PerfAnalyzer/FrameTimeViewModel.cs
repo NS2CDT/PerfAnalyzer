@@ -135,7 +135,7 @@ namespace PerfAnalyzer {
         return;
       }
 
-      range.ToolTip = $"{frames.Count} frames, Span {(end-start)/1000:F3}s, Peak {frames.MaxBy(f=> f.Time).Time:F1}Ms";
+      range.ToolTip = $"{frames.Count} frames, Span {(end-start)/1000:F3}s, Avg: {frames.Average(f => f.Time):F2}Ms  Peak {frames.MaxBy(f=> f.Time).Time:F2}Ms";
 
       NodeList = PLog.GetStatsForRange(frames.Start, frames.End).
                  OrderByDescending(p => p.AvgExclusiveTime).

@@ -133,11 +133,13 @@ namespace PerformanceLog {
 
   public class BaseNodeStats {
     public string Name { get; protected set; }
-    public double TotalTime { get; set; }
+    public double TotalInclusiveTime { get; set; }
+    public double AvgInclusiveTime { get; set; }
     public double TotalExclusiveTime { get; set; }
     public double AvgExclusiveTime { get; set; }
     public double MaxAvgExclusiveTime { get; set; }
     public double PeakFrameTime { get; internal set; }
+    public double AvgFrameTime { get; internal set; }
 
     public long CallCount { get; set; }
     public double AvgCallCount { get; set; }
@@ -171,7 +173,9 @@ namespace PerformanceLog {
       SetStats(stats.TotalExclusiveTime, stats.PeakAvgTime, stats.CallCount, stats.NodeCount);
       FrameCount = stats.FrameCount;
       PeakFrameTime = ToMs(stats.PeakFrameTime);
-      TotalTime = ToMs(stats.TotalTime);
+      AvgFrameTime = ToMs(stats.TotalExclusiveTime / (double)stats.FrameCount);
+      AvgInclusiveTime = ToMs(stats.TotalTime / (double)stats.CallCount);
+      TotalInclusiveTime = ToMs(stats.TotalTime);
     }
 
     public NodeStatsDiff GetDiff(PerfNodeStats old) {
@@ -179,6 +183,10 @@ namespace PerformanceLog {
     }
 
     private double ToMs(long time) {
+      return time * 10 / 1000.0;
+    }
+
+    private double ToMs(double time) {
       return time * 10 / 1000.0;
     }
 

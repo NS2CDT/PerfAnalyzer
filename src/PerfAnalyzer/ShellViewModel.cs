@@ -76,13 +76,19 @@ namespace PerfAnalyzer {
 
     public string Title => CurrentPLog.FilePath;
 
+    private static bool setInitialDirectory = false;
+
     public void OpenPickProfileLog() {
       Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
 
       dlg.FileName = "ProfileLog";
       dlg.DefaultExt = ".plog";
       dlg.Filter = "Profile Log (.plog)|*.plog"; // Filters files by extension
-      dlg.InitialDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Natural Selection 2");
+
+      if (!setInitialDirectory) {
+        dlg.InitialDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Natural Selection 2");
+        setInitialDirectory = true;
+      }
 
       // Show open file dialog box
       bool? result = dlg.ShowDialog();

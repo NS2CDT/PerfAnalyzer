@@ -6,7 +6,10 @@
         xmlns:cal="http://www.caliburnproject.org"
         xmlns:local="clr-namespace:PerfAnalyzer"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="700" Width="1500">
+        Title="{Binding Title}" Height="700" Width="1500"
+        cal:Message.Attach="[Event Drop] = [Action FileDropped($eventArgs)];
+                            [Event PreviewDragOver] = [Action FilePreviewDragEnter($eventArgs)]"
+        AllowDrop="True">
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="20"/>

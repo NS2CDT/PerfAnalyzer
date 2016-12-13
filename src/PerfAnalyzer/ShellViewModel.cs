@@ -42,7 +42,6 @@ namespace PerfAnalyzer {
 
       ActivateItem(new FrameTimeViewModel(Events));
 
-
       //just use an empty ProfileLog if one was not loaded already
       CurrentPLog = CurrentPLog ?? new ProfileLog();
       events.Subscribe(this);
@@ -70,6 +69,10 @@ namespace PerfAnalyzer {
       }
 
       set {
+        if (value == _currentProfileLog) {
+          return;
+        }
+
         _currentProfileLog = value;
         NotifyOfPropertyChange();
         NotifyOfPropertyChange(nameof(Title));
@@ -138,6 +141,38 @@ namespace PerfAnalyzer {
 
     public override object GetView(object context) {
       return null;
+    }
+
+    public void FilePreviewDragEnter(DragEventArgs e) {
+
+      if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+        // Note that you can have more than one file.
+        string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+
+        if (!files.Any(s => s.EndsWith(".plog", StringComparison.OrdinalIgnoreCase))) {
+          e.Effects = DragDropEffects.None;
+        }
+      }
+
+      e.Handled = true;
+    }
+
+    public void FileDropped(DragEventArgs e) {
+
+      if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+        // Note that you can have more than one file.
+        string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+        string logpath = files.FirstOrDefault(s => s.EndsWith(".plog"));
+
+        if (logpath != null) {
+          OpenProfileLog(logpath);
+        } else {
+          e.Effects = DragDropEffects.None;
+        }
+      }
+      e.Handled = true;
     }
   }
 }

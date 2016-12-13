@@ -7,43 +7,52 @@
              xmlns:treeview="http://icsharpcode.net/sharpdevelop/treeview"
              xmlns:local="clr-namespace:PerfAnalyzer"
              mc:Ignorable="d"
-             d:DesignHeight="800" d:DesignWidth="900" Background="DarkBlue">
-  <Grid>
+             Height="500"
+             Width="705">
+  <Grid Margin="10,0,10,10" VerticalAlignment="Stretch">
     <Grid.RowDefinitions>
-      <RowDefinition Height="23*"/>
-      <RowDefinition Height="137*"/>
+      <RowDefinition Height="60"/>
+      <RowDefinition Height="*" MinHeight="200"/>
     </Grid.RowDefinitions>
-    <treeview:SharpTreeView x:Name="CallNodeList" Margin="0,68,10,57"
-                                Root="{Binding CallNodes}"
+    <treeview:SharpTreeView x:Name="CallNodeList" Margin="10,17,10,10"
+                                VerticalAlignment="Stretch"
+                                Root="{Binding CallTree}"
                                 ShowRoot = "False"
-                                SelectedItem="{Binding SelectedNode}" Grid.RowSpan="2" >
+                                SelectedItem="{Binding SelectedNode}" Grid.Row="1" >
 
-    <ListView.View>
-      <treeview:SharpGridView>
-        <GridView.Columns>
-          <GridViewColumn>
-            <GridViewColumn.CellTemplate>
-              <DataTemplate>
-                <treeview:SharpTreeNodeView />
-              </DataTemplate>
-            </GridViewColumn.CellTemplate>
-          </GridViewColumn>
+      <ListView.View>
+        <treeview:SharpGridView>
+          <GridView.Columns>
+            <GridViewColumn Width="Auto">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <treeview:SharpTreeNodeView />
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
 
-          <GridViewColumn Header="Avg Time">
-            <GridViewColumn.CellTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding ChangeKinds}" />
-              </DataTemplate>
-            </GridViewColumn.CellTemplate>
-          </GridViewColumn>
-        </GridView.Columns>
-      </treeview:SharpGridView>
-    </ListView.View>
+            <GridViewColumn Header="Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
+            <GridViewColumn Header="Inc Time" Width="60" DisplayMemberBinding="{Binding InclTime, StringFormat=\{0:F3\}}"/>
+            <GridViewColumn Header="Exl Time" Width="60" DisplayMemberBinding="{Binding ExclTime, StringFormat=\{0:F3\}}"/>
+            <GridViewColumn Header="%" Width="40" DisplayMemberBinding="{Binding Percent, StringFormat=\{0:F1\}}"/>
+            <GridViewColumn Header="Calls" Width="50" DisplayMemberBinding="{Binding Calls}"/>
+            <GridViewColumn Header="Avg Incl" Width="60" DisplayMemberBinding="{Binding AverageInclusive, StringFormat=\{0:F2\}}"/>
+            <GridViewColumn Header="Avg Excl" Width="60" DisplayMemberBinding="{Binding AverageExclusive, StringFormat=\{0:F2\}}"/>
+            <GridViewColumn Header="Thread %" Width="40" DisplayMemberBinding="{Binding ThreadPercent, StringFormat=\{0:F1\}}"/>
+          </GridView.Columns>
+        </treeview:SharpGridView>
+      </ListView.View>
     </treeview:SharpTreeView>
 
-    <StackPanel HorizontalAlignment="Left" Height="25" Margin="305,38,0,0" VerticalAlignment="Top" Width="289" Orientation="Horizontal">
-      <Button x:Name="PrevFrame" Content="Prev Frame" />
-      <Button x:Name="NextFrame" Content="Next Frame"/>
+    <StackPanel HorizontalAlignment="Left" Height="27" Margin="10,27,0,0" VerticalAlignment="Top" Width="242" Orientation="Horizontal" Grid.Row="0">
+      <Button x:Name="GotoPrevFrame" Content="Prev" Width="40" HorizontalAlignment="Center"/>
+      <Button x:Name="GotoNextFrame" Content="Next" Width="40" HorizontalAlignment="Center"/>
+      <Label x:Name="label" Content="Frame:"/>
+      <TextBox x:Name="FrameId" TextWrapping="Wrap" Text="TextBox" Width="102" HorizontalAlignment="Right" Margin="5,0,0,0"/>
+    </StackPanel>
+    <StackPanel HorizontalAlignment="Left" Height="27" Margin="323,27,0,0" VerticalAlignment="Top" Width="154" Orientation="Horizontal" Grid.Row="0">
+      <Button x:Name="CollapseAll" Content="Collapse All" Width="75" HorizontalAlignment="Left" Height="27"/>
+      <Button x:Name="ExpandAll" Content="Expand All" Width="75"  Height="27"/>
     </StackPanel>
   </Grid>
 </UserControl>

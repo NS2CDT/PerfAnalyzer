@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
-// 
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
 // without restriction, including without limitation the rights to use, copy, modify, merge,
 // publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 // to whom the Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all copies or
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 // INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 // PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -36,13 +36,14 @@ namespace ICSharpCode.TreeView
 		SharpTreeNodeCollection modelChildren;
 		internal SharpTreeNode modelParent;
 		bool isVisible = true;
-		
+        static bool RecursiveCheck = false;
+
 		void UpdateIsVisible(bool parentIsVisible, bool updateFlattener)
 		{
 			bool newIsVisible = parentIsVisible && !isHidden;
 			if (isVisible != newIsVisible) {
 				isVisible = newIsVisible;
-				
+
 				// invalidate the augmented data
 				SharpTreeNode node = this;
 				while (node != null && node.totalListLength >= 0) {
@@ -56,11 +57,11 @@ namespace ICSharpCode.TreeView
 				}
 				// also update the model children:
 				UpdateChildIsVisible(false);
-				
+
 				// Validate our invariants:
 				if (updateFlattener)
 					CheckRootInvariants();
-				
+
 				// Tell the flattener about the removed nodes:
 				if (removedNodes != null) {
 					var flattener = GetListRoot().treeFlattener;
@@ -81,9 +82,9 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		protected virtual void OnIsVisibleChanged() {}
-		
+
 		void UpdateChildIsVisible(bool updateFlattener)
 		{
 			if (modelChildren != null && modelChildren.Count > 0) {
@@ -93,13 +94,13 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		#region Main
-		
+
 		public SharpTreeNode()
 		{
 		}
-		
+
 		public SharpTreeNodeCollection Children {
 			get {
 				if (modelChildren == null)
@@ -107,42 +108,42 @@ namespace ICSharpCode.TreeView
 				return modelChildren;
 			}
 		}
-		
+
 		public SharpTreeNode Parent {
 			get { return modelParent; }
 		}
-		
+
 		public virtual object Text
 		{
 			get { return null; }
 		}
-		
+
 		public virtual Brush Foreground {
 			get { return SystemColors.WindowTextBrush; }
 		}
-		
+
 		public virtual object Icon
 		{
 			get { return null; }
 		}
-		
+
 		public virtual object ToolTip
 		{
 			get { return null; }
 		}
-		
+
 		public int Level
 		{
 			get { return Parent != null ? Parent.Level + 1 : 0; }
 		}
-		
+
 		public bool IsRoot
 		{
 			get { return Parent == null; }
 		}
-		
+
 		bool isHidden;
-		
+
 		public bool IsHidden
 		{
 			get { return isHidden; }
@@ -157,16 +158,16 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// Return true when this node is not hidden and when all parent nodes are expanded and not hidden.
 		/// </summary>
 		public bool IsVisible {
 			get { return isVisible; }
 		}
-		
+
 		bool isSelected;
-		
+
 		public bool IsSelected {
 			get { return isSelected; }
 			set {
@@ -176,9 +177,9 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region OnChildrenChanged
 		internal protected virtual void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
 		{
@@ -190,16 +191,16 @@ namespace ICSharpCode.TreeView
 					SharpTreeNode removeEnd = node;
 					while (removeEnd.modelChildren != null && removeEnd.modelChildren.Count > 0)
 						removeEnd = removeEnd.modelChildren.Last();
-					
+
 					List<SharpTreeNode> removedNodes = null;
 					int visibleIndexOfRemoval = 0;
 					if (node.isVisible) {
 						visibleIndexOfRemoval = GetVisibleIndexForNode(node);
 						removedNodes = node.VisibleDescendantsAndSelf().ToList();
 					}
-					
+
 					RemoveNodes(node, removeEnd);
-					
+
 					if (removedNodes != null) {
 						var flattener = GetListRoot().treeFlattener;
 						if (flattener != null) {
@@ -214,18 +215,18 @@ namespace ICSharpCode.TreeView
 					insertionPos = null;
 				else
 					insertionPos = modelChildren[e.NewStartingIndex - 1];
-				
+
 				foreach (SharpTreeNode node in e.NewItems) {
 					Debug.Assert(node.modelParent == null);
 					node.modelParent = this;
 					node.UpdateIsVisible(isVisible && isExpanded, false);
 					//Debug.WriteLine("Inserting {0} after {1}", node, insertionPos);
-					
+
 					while (insertionPos != null && insertionPos.modelChildren != null && insertionPos.modelChildren.Count > 0) {
 						insertionPos = insertionPos.modelChildren.Last();
 					}
 					InsertNodeAfter(insertionPos ?? this, node);
-					
+
 					insertionPos = node;
 					if (node.isVisible) {
 						var flattener = GetListRoot().treeFlattener;
@@ -235,26 +236,26 @@ namespace ICSharpCode.TreeView
 					}
 				}
 			}
-			
+
 			RaisePropertyChanged("ShowExpander");
 			RaiseIsLastChangedIfNeeded(e);
 		}
 		#endregion
-		
+
 		#region Expanding / LazyLoading
-		
+
 		public virtual object ExpandedIcon
 		{
 			get { return Icon; }
 		}
-		
+
 		public virtual bool ShowExpander
 		{
 			get { return LazyLoading || Children.Any(c => !c.isHidden); }
 		}
-		
+
 		bool isExpanded;
-		
+
 		public bool IsExpanded
 		{
 			get { return isExpanded; }
@@ -273,12 +274,12 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		protected virtual void OnExpanding() {}
 		protected virtual void OnCollapsing() {}
-		
+
 		bool lazyLoading;
-		
+
 		public bool LazyLoading
 		{
 			get { return lazyLoading; }
@@ -296,9 +297,9 @@ namespace ICSharpCode.TreeView
 				RaisePropertyChanged("ShowExpander");
 			}
 		}
-		
+
 		bool canExpandRecursively = true;
-		
+
 		/// <summary>
 		/// Gets whether this node can be expanded recursively.
 		/// If not overridden, this property returns false if the node is using lazy-loading, and true otherwise.
@@ -306,17 +307,17 @@ namespace ICSharpCode.TreeView
 		public virtual bool CanExpandRecursively {
 			get { return canExpandRecursively; }
 		}
-		
+
 		public virtual bool ShowIcon
 		{
 			get { return Icon != null; }
 		}
-		
+
 		protected virtual void LoadChildren()
 		{
 			throw new NotSupportedException(GetType().Name + " does not support lazy loading");
 		}
-		
+
 		/// <summary>
 		/// Ensures the children were initialized (loads children if lazy loading is enabled)
 		/// </summary>
@@ -327,54 +328,54 @@ namespace ICSharpCode.TreeView
 				LoadChildren();
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region Ancestors / Descendants
-		
+
 		public IEnumerable<SharpTreeNode> Descendants()
 		{
 			return TreeTraversal.PreOrder(this.Children, n => n.Children);
 		}
-		
+
 		public IEnumerable<SharpTreeNode> DescendantsAndSelf()
 		{
 			return TreeTraversal.PreOrder(this, n => n.Children);
 		}
-		
+
 		internal IEnumerable<SharpTreeNode> VisibleDescendants()
 		{
 			return TreeTraversal.PreOrder(this.Children.Where(c => c.isVisible), n => n.Children.Where(c => c.isVisible));
 		}
-		
+
 		internal IEnumerable<SharpTreeNode> VisibleDescendantsAndSelf()
 		{
 			return TreeTraversal.PreOrder(this, n => n.Children.Where(c => c.isVisible));
 		}
-		
+
 		public IEnumerable<SharpTreeNode> Ancestors()
 		{
 			for (SharpTreeNode n = this.Parent; n != null; n = n.Parent)
 				yield return n;
 		}
-		
+
 		public IEnumerable<SharpTreeNode> AncestorsAndSelf()
 		{
 			for (SharpTreeNode n = this; n != null; n = n.Parent)
 				yield return n;
 		}
-		
+
 		#endregion
-		
+
 		#region Editing
-		
+
 		public virtual bool IsEditable
 		{
 			get { return false; }
 		}
-		
+
 		bool isEditing;
-		
+
 		public bool IsEditing
 		{
 			get { return isEditing; }
@@ -386,40 +387,40 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		public virtual string LoadEditText()
 		{
 			return null;
 		}
-		
+
 		public virtual bool SaveEditText(string value)
 		{
 			return true;
 		}
-		
+
 		#endregion
-		
+
 		#region Checkboxes
-		
+
 		public virtual bool IsCheckable {
 			get { return false; }
 		}
-		
+
 		bool? isChecked;
-		
+
 		public bool? IsChecked {
 			get { return isChecked; }
 			set {
 				SetIsChecked(value, true);
 			}
 		}
-		
+
 		void SetIsChecked(bool? value, bool update)
 		{
 			if (isChecked != value) {
 				isChecked = value;
-				
-				if (update) {
+
+				if (update && RecursiveCheck) {
 					if (IsChecked != null) {
 						foreach (var child in Descendants()) {
 							if (child.IsCheckable) {
@@ -427,7 +428,7 @@ namespace ICSharpCode.TreeView
 							}
 						}
 					}
-					
+
 					foreach (var parent in Ancestors()) {
 						if (parent.IsCheckable) {
 							if (!parent.TryValueForIsChecked(true)) {
@@ -438,11 +439,11 @@ namespace ICSharpCode.TreeView
 						}
 					}
 				}
-				
+
 				RaisePropertyChanged("IsChecked");
 			}
 		}
-		
+
 		bool TryValueForIsChecked(bool? value)
 		{
 			if (Children.Where(n => n.IsCheckable).All(n => n.IsChecked == value)) {
@@ -451,11 +452,11 @@ namespace ICSharpCode.TreeView
 			}
 			return false;
 		}
-		
+
 		#endregion
-		
+
 		#region Cut / Copy / Paste / Delete
-		
+
 		/// <summary>
 		/// Gets whether the node should render transparently because it is 'cut' (but not actually removed yet).
 		/// </summary>
@@ -464,20 +465,20 @@ namespace ICSharpCode.TreeView
 			static List<SharpTreeNode> cuttedNodes = new List<SharpTreeNode>();
 			static IDataObject cuttedData;
 			static EventHandler requerySuggestedHandler; // for weak event
-	
+
 			static void StartCuttedDataWatcher()
 			{
 				requerySuggestedHandler = new EventHandler(CommandManager_RequerySuggested);
 				CommandManager.RequerySuggested += requerySuggestedHandler;
 			}
-	
+
 			static void CommandManager_RequerySuggested(object sender, EventArgs e)
 			{
 				if (cuttedData != null && !Clipboard.IsCurrent(cuttedData)) {
 					ClearCuttedData();
 				}
 			}
-	
+
 			static void ClearCuttedData()
 			{
 				foreach (var node in cuttedNodes) {
@@ -486,7 +487,7 @@ namespace ICSharpCode.TreeView
 				cuttedNodes.Clear();
 				cuttedData = null;
 			}
-	
+
 			//static public IEnumerable<SharpTreeNode> PurifyNodes(IEnumerable<SharpTreeNode> nodes)
 			//{
 			//    var list = nodes.ToList();
@@ -500,9 +501,9 @@ namespace ICSharpCode.TreeView
 			//    }
 			//    return list;
 			//}
-	
+
 			bool isCut;
-	
+
 			public bool IsCut
 			{
 				get { return isCut; }
@@ -512,70 +513,70 @@ namespace ICSharpCode.TreeView
 					RaisePropertyChanged("IsCut");
 				}
 			}
-	
+
 			internal bool InternalCanCut()
 			{
 				return InternalCanCopy() && InternalCanDelete();
 			}
-	
+
 			internal void InternalCut()
 			{
 				ClearCuttedData();
 				cuttedData = Copy(ActiveNodesArray);
 				Clipboard.SetDataObject(cuttedData);
-	
+
 				foreach (var node in ActiveNodes) {
 					node.IsCut = true;
 					cuttedNodes.Add(node);
 				}
 			}
-	
+
 			internal bool InternalCanCopy()
 			{
 				return CanCopy(ActiveNodesArray);
 			}
-	
+
 			internal void InternalCopy()
 			{
 				Clipboard.SetDataObject(Copy(ActiveNodesArray));
 			}
-	
+
 			internal bool InternalCanPaste()
 			{
 				return CanPaste(Clipboard.GetDataObject());
 			}
-	
+
 			internal void InternalPaste()
 			{
 				Paste(Clipboard.GetDataObject());
-	
+
 				if (cuttedData != null) {
 					DeleteCore(cuttedNodes.ToArray());
 					ClearCuttedData();
 				}
 			}
 		 */
-		
+
 		public virtual bool CanDelete(SharpTreeNode[] nodes)
 		{
 			return false;
 		}
-		
+
 		public virtual void Delete(SharpTreeNode[] nodes)
 		{
 			throw new NotSupportedException(GetType().Name + " does not support deletion");
 		}
-		
+
 		public virtual void DeleteWithoutConfirmation(SharpTreeNode[] nodes)
 		{
 			throw new NotSupportedException(GetType().Name + " does not support deletion");
 		}
-		
+
 		public virtual bool CanCut(SharpTreeNode[] nodes)
 		{
 			return CanCopy(nodes) && CanDelete(nodes);
 		}
-		
+
 		public virtual void Cut(SharpTreeNode[] nodes)
 		{
 			var data = GetDataObject(nodes);
@@ -585,35 +586,35 @@ namespace ICSharpCode.TreeView
 				DeleteWithoutConfirmation(nodes);
 			}
 		}
-		
+
 		public virtual bool CanCopy(SharpTreeNode[] nodes)
 		{
 			return false;
 		}
-		
+
 		public virtual void Copy(SharpTreeNode[] nodes)
 		{
 			var data = GetDataObject(nodes);
 			if (data != null)
 				Clipboard.SetDataObject(data, copy: true);
 		}
-		
+
 		protected virtual IDataObject GetDataObject(SharpTreeNode[] nodes)
 		{
 			return null;
 		}
-		
+
 		public virtual bool CanPaste(IDataObject data)
 		{
 			return false;
 		}
-		
+
 		public virtual void Paste(IDataObject data)
 		{
 			throw new NotSupportedException(GetType().Name + " does not support copy/paste");
 		}
 		#endregion
-		
+
 		#region Drag and Drop
 		public virtual void StartDrag(DependencyObject dragSource, SharpTreeNode[] nodes)
 		{
@@ -630,7 +631,7 @@ namespace ICSharpCode.TreeView
 				DeleteWithoutConfirmation(nodes);
 			}
 		}
-		
+
 		/// <summary>
 		/// Gets the possible drop effects.
 		/// If the method returns more than one of (Copy|Move|Link), the tree view will choose one effect based
@@ -650,17 +651,17 @@ namespace ICSharpCode.TreeView
 			}
 			return DragDropEffects.None;
 		}
-		
+
 		internal void InternalDrop(DragEventArgs e, int index)
 		{
 			if (LazyLoading) {
 				EnsureLazyChildren();
 				index = Children.Count;
 			}
-			
+
 			Drop(e, index);
 		}
-		
+
 		public virtual void Drop(DragEventArgs e, int index)
 		{
 			// Since the default drag implementation uses Copy(),
@@ -668,9 +669,9 @@ namespace ICSharpCode.TreeView
 			Paste(e.Data);
 		}
 		#endregion
-		
+
 		#region IsLast (for TreeView lines)
-		
+
 		public bool IsLast
 		{
 			get
@@ -679,7 +680,7 @@ namespace ICSharpCode.TreeView
 					Parent.Children[Parent.Children.Count - 1] == this;
 			}
 		}
-		
+
 		void RaiseIsLastChangedIfNeeded(NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action) {
@@ -700,22 +701,22 @@ namespace ICSharpCode.TreeView
 					break;
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region INotifyPropertyChanged Members
-		
+
 		public event PropertyChangedEventHandler PropertyChanged;
-		
+
 		public void RaisePropertyChanged(string name)
 		{
 			if (PropertyChanged != null) {
 				PropertyChanged(this, new PropertyChangedEventArgs(name));
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region Model
 		/// <summary>
 		/// Gets the underlying model object.
@@ -729,24 +730,24 @@ namespace ICSharpCode.TreeView
 		public object Model {
 			get { return GetModel(); }
 		}
-		
+
 		protected virtual object GetModel()
 		{
 			return null;
 		}
 		#endregion
-		
+
 		/// <summary>
 		/// Gets called when the item is double-clicked.
 		/// </summary>
 		public virtual void ActivateItem(RoutedEventArgs e)
 		{
 		}
-		
+
 		public virtual void ShowContextMenu(ContextMenuEventArgs e)
 		{
 		}
-		
+
 		public override string ToString()
 		{
 			// used for keyboard navigation

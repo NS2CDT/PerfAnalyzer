@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
-// 
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
 // without restriction, including without limitation the rights to use, copy, modify, merge,
 // publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 // to whom the Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all copies or
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 // INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 // PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -37,7 +37,11 @@ namespace ICSharpCode.TreeView
 		{
 			DefaultStyleKeyProperty.OverrideMetadata(typeof(SharpTreeNodeView),
 			                                         new FrameworkPropertyMetadata(typeof(SharpTreeNodeView)));
-		}
+        }
+
+        public SharpTreeNodeView() {
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+        }
 
 		public static readonly DependencyProperty TextBackgroundProperty =
 			DependencyProperty.Register("TextBackground", typeof(Brush), typeof(SharpTreeNodeView));
@@ -54,11 +58,11 @@ namespace ICSharpCode.TreeView
 		}
 
 		public SharpTreeViewItem ParentItem { get; private set; }
-		
+
 		public static readonly DependencyProperty CellEditorProperty =
 			DependencyProperty.Register("CellEditor", typeof(Control), typeof(SharpTreeNodeView),
 			                            new FrameworkPropertyMetadata());
-		
+
 		public Control CellEditor {
 			get { return (Control)GetValue(CellEditorProperty); }
 			set { SetValue(CellEditorProperty, value); }
@@ -122,6 +126,7 @@ namespace ICSharpCode.TreeView
 			} else if (e.PropertyName == "IsExpanded") {
 				if (Node.IsExpanded)
 					ParentTreeView.HandleExpanding(Node);
+                LinesRenderer.InvalidateVisual();
 			}
 		}
 
@@ -151,11 +156,15 @@ namespace ICSharpCode.TreeView
 			else {
 				expander.ClearValue(VisibilityProperty);
 			}
-		}
+    }
 
-		internal double CalculateIndent()
+        bool HasCheckBoxes = false;
+
+        internal double CalculateIndent()
 		{
-			var result = 19 * Node.Level;
+            var checkboxExtra = (HasCheckBoxes ? 9 : 0);
+
+			var result = (10 + checkboxExtra) * Node.Level;
 			if (ParentTreeView.ShowRoot) {
 				if (!ParentTreeView.ShowRootExpander) {
 					if (ParentTreeView.Root != Node) {
@@ -164,7 +173,7 @@ namespace ICSharpCode.TreeView
 				}
 			}
 			else {
-				result -= 19;
+				result -= (10 + checkboxExtra);
 			}
 			if (result < 0) {
 				Debug.WriteLine("Negative indent level detected for node " + Node);

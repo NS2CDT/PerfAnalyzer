@@ -77,6 +77,10 @@ namespace PerfAnalyzer {
         NotifyOfPropertyChange();
         NotifyOfPropertyChange(nameof(Title));
 
+        if (value?.Frames.FirstOrDefault() != null) {
+          ShowFrameDetails(value.Frames.First());
+        }
+
         Events.PublishOnUIThread(value);
       }
     }

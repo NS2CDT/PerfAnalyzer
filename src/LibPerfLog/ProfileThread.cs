@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -30,6 +31,16 @@ namespace PerformanceLog {
 
     public double TimeMs => Time * 10 / 1000.0;
 
+    public double GetChildTimeMs() {
+      uint time = 0;
+
+      foreach (var node in GetChildNodes()) {
+        time += node.Time;
+      }
+
+      return time * 10 / 1000.0;
+    }
+
     public IEnumerable<CallRecord> Nodes {
       get {
         for (int i = StartIndex; i < StartIndex + NodeCount; i++) {
@@ -44,6 +55,10 @@ namespace PerformanceLog {
 
     public int GetNodeIndexWithId(int id) {
       return Frame.GetNodeIndexWithId(id, StartIndex, StartIndex + NodeCount);
+    }
+
+    public IEnumerable<CallRecord> GetChildNodes() {
+      return Frame.GetChildNodesOfNode(StartIndex);
     }
 
     public CallRecord GetNodeWithId(int id) {

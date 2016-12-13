@@ -98,13 +98,28 @@ namespace PerfAnalyzer {
     }
   }
 
+  [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+  public class ManualSizedViewAttribute : Attribute {
+  }
+
   public class TAWindowManager : WindowManager {
+    HashSet<Window> Windows = new HashSet<Window>();
+
     protected override Window EnsureWindow(object model, object view, bool isDialog) {
       Window window = base.EnsureWindow(model, view, isDialog);
 
-      window.SizeToContent = SizeToContent.Manual;
+      if (model.GetType().GetAttributes<ManualSizedViewAttribute>(true).Any()) {
+        window.SizeToContent = SizeToContent.Manual;
+      }
+
+      Windows.Add(window);
+      window.Closing += Window_Closing;
 
       return window;
+    }
+
+    private void Window_Closing(object sender, CancelEventArgs e) {
+      Windows.Remove((Window)sender);
     }
   }
 }

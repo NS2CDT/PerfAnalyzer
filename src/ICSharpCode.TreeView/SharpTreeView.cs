@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
-// 
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
 // without restriction, including without limitation the rights to use, copy, modify, merge,
 // publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 // to whom the Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all copies or
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 // INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 // PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -51,7 +51,7 @@ namespace ICSharpCode.TreeView
 
 			VirtualizingStackPanel.VirtualizationModeProperty.OverrideMetadata(typeof(SharpTreeView),
 			                                                                   new FrameworkPropertyMetadata(VirtualizationMode.Recycling));
-			
+
 			RegisterCommands();
 		}
 
@@ -123,7 +123,7 @@ namespace ICSharpCode.TreeView
 		public static readonly DependencyProperty ShowAlternationProperty =
 			DependencyProperty.RegisterAttached("ShowAlternation", typeof(bool), typeof(SharpTreeView),
 			                                    new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits));
-		
+
 		protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
 		{
 			base.OnPropertyChanged(e);
@@ -176,7 +176,7 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		protected override DependencyObject GetContainerForItemOverride()
 		{
 			return new SharpTreeViewItem();
@@ -197,9 +197,9 @@ namespace ICSharpCode.TreeView
 				container.NodeView.LinesRenderer.InvalidateVisual();
 			}
 		}
-		
+
 		bool doNotScrollOnExpanding;
-		
+
 		/// <summary>
 		/// Handles the node expanding event in the tree view.
 		/// This method gets called only if the node is in the visible region (a SharpTreeNodeView exists).
@@ -228,7 +228,7 @@ namespace ICSharpCode.TreeView
 					}));
 			}
 		}
-		
+
 		protected override void OnKeyDown(KeyEventArgs e)
 		{
 			SharpTreeViewItem container = e.OriginalSource as SharpTreeViewItem;
@@ -296,8 +296,8 @@ namespace ICSharpCode.TreeView
 			if (!e.Handled)
 				base.OnKeyDown(e);
 		}
-		
-		void ExpandRecursively(SharpTreeNode node)
+
+		public void ExpandRecursively(SharpTreeNode node)
 		{
 			if (node.CanExpandRecursively) {
 				node.IsExpanded = true;
@@ -306,7 +306,7 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// Scrolls the specified node in view and sets keyboard focus on it.
 		/// </summary>
@@ -322,7 +322,7 @@ namespace ICSharpCode.TreeView
 				this.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new DispatcherOperationCallback(this.OnFocusItem), node);
 			}
 		}
-		
+
 		public void ScrollIntoView(SharpTreeNode node)
 		{
 			if (node == null)
@@ -333,7 +333,7 @@ namespace ICSharpCode.TreeView
 			doNotScrollOnExpanding = false;
 			base.ScrollIntoView(node);
 		}
-		
+
 		object OnFocusItem(object item)
 		{
 			FrameworkElement element = this.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
@@ -344,7 +344,7 @@ namespace ICSharpCode.TreeView
 		}
 
 		#region Track selection
-		
+
 		protected override void OnSelectionChanged(SelectionChangedEventArgs e)
 		{
 			foreach (SharpTreeNode node in e.RemovedItems) {
@@ -355,9 +355,9 @@ namespace ICSharpCode.TreeView
 			}
 			base.OnSelectionChanged(e);
 		}
-		
+
 		#endregion
-		
+
 		#region Drag and Drop
 		protected override void OnDragEnter(DragEventArgs e)
 		{
@@ -367,7 +367,7 @@ namespace ICSharpCode.TreeView
 		protected override void OnDragOver(DragEventArgs e)
 		{
 			e.Effects = DragDropEffects.None;
-			
+
 			if (Root != null && !ShowRoot) {
 				e.Handled = true;
 				e.Effects = Root.GetDropEffect(e, Root.Children.Count);
@@ -385,7 +385,7 @@ namespace ICSharpCode.TreeView
 					Root.InternalDrop(e, Root.Children.Count);
 			}
 		}
-		
+
 		internal void HandleDragEnter(SharpTreeViewItem item, DragEventArgs e)
 		{
 			HandleDragOver(item, e);
@@ -395,7 +395,7 @@ namespace ICSharpCode.TreeView
 		{
 			HidePreview();
 			e.Effects = DragDropEffects.None;
-			
+
 			var target = GetDropTarget(item, e);
 			if (target != null) {
 				e.Handled = true;
@@ -403,7 +403,7 @@ namespace ICSharpCode.TreeView
 				ShowPreview(target.Item, target.Place);
 			}
 		}
-		
+
 		internal void HandleDrop(SharpTreeViewItem item, DragEventArgs e)
 		{
 			try {
@@ -420,7 +420,7 @@ namespace ICSharpCode.TreeView
 				throw;
 			}
 		}
-		
+
 		internal void HandleDragLeave(SharpTreeViewItem item, DragEventArgs e)
 		{
 			HidePreview();
@@ -580,7 +580,7 @@ namespace ICSharpCode.TreeView
 				}
 
 				insertMarker.Margin = new Thickness(p.X, p.Y, 0, 0);
-				
+
 				SharpTreeNodeView secondNodeView = null;
 				var index = flattener.IndexOf(item.Node);
 
@@ -592,7 +592,7 @@ namespace ICSharpCode.TreeView
 				else if (index + 1 < flattener.Count) {
 					secondNodeView = (ItemContainerGenerator.ContainerFromIndex(index + 1) as SharpTreeViewItem).NodeView;
 				}
-				
+
 				var w = p1.X + previewNodeView.ActualWidth - p.X;
 
 				if (secondNodeView != null) {
@@ -616,7 +616,7 @@ namespace ICSharpCode.TreeView
 			}
 		}
 		#endregion
-		
+
 		#region Cut / Copy / Paste / Delete Commands
 
 		static void RegisterCommands()
@@ -692,7 +692,7 @@ namespace ICSharpCode.TreeView
 			}
 			e.Handled = true;
 		}
-		
+
 		static void HandleExecuted_Delete(object sender, ExecutedRoutedEventArgs e)
 		{
 			e.Handled = true;
@@ -709,7 +709,7 @@ namespace ICSharpCode.TreeView
 			e.CanExecute = nodes.Length > 0 && nodes[0].CanDelete(nodes);
 			e.Handled = true;
 		}
-		
+
 		/// <summary>
 		/// Gets the selected items which do not have any of their ancestors selected.
 		/// </summary>

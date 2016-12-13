@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
-// 
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
 // without restriction, including without limitation the rights to use, copy, modify, merge,
 // publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 // to whom the Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all copies or
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 // INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 // PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -27,10 +27,22 @@ namespace ICSharpCode.TreeView
 {
 	class LinesRenderer : FrameworkElement
 	{
-		static LinesRenderer()
+        bool HasCheckBoxes = false;
+        static Pen pred, p2, pPink;
+
+        static LinesRenderer()
 		{
-			pen = new Pen(Brushes.LightGray, 1);
+			pen = new Pen(Brushes.Black, 1);
 			pen.Freeze();
+
+            pred = new Pen(Brushes.Red, 1);
+			pred.Freeze();
+
+            p2 = new Pen(Brushes.Green, 1);
+			p2.Freeze();
+
+            pPink = new Pen(Brushes.Pink, 1);
+			pPink.Freeze();
 		}
 
 		static Pen pen;
@@ -45,8 +57,15 @@ namespace ICSharpCode.TreeView
 			var indent = NodeView.CalculateIndent();
 			var p = new Point(indent + 4.5, 0);
 
+            var height = (Parent as FrameworkElement).ActualHeight;
+
+            // draw line point out from the right side of the +
 			if (!NodeView.Node.IsRoot || NodeView.ParentTreeView.ShowRootExpander) {
 				dc.DrawLine(pen, new Point(p.X, ActualHeight / 2), new Point(p.X + 10, ActualHeight / 2));
+
+              if(NodeView.Node.IsExpanded) {
+                dc.DrawLine(pen, new Point(p.X + 10, ActualHeight / 2), new Point(p.X + 10, ActualHeight));
+              }
 			}
 
 			if (NodeView.Node.IsRoot) return;
@@ -55,12 +74,12 @@ namespace ICSharpCode.TreeView
 				dc.DrawLine(pen, p, new Point(p.X, ActualHeight / 2));
 			}
 			else {
-				dc.DrawLine(pen, p, new Point(p.X, ActualHeight));
+				dc.DrawLine(pen, p, new Point(p.X, ActualHeight+10));
 			}
 
 			var current = NodeView.Node;
 			while (true) {
-				p.X -= 19;
+				p.X -= HasCheckBoxes ? 19 : 10;
 				current = current.Parent;
 				if (p.X < 0) break;
 				if (!current.IsLast) {

@@ -32,7 +32,7 @@ namespace PerformanceLog {
 
     public uint FrameIndex { get; private set; }
     public ProfileLog Owner { get; private set; }
-    public ProfileFrame PrevFrame => Owner.Frames[(int)FrameIndex - 1];
+    public ProfileFrame PrevFrame => FrameIndex > 0 ? Owner.Frames[(int)FrameIndex - 1] : null;
     public ProfileFrame NextFrame => Owner.Frames[(int)FrameIndex +1];
 
     public double TotalTimeMS => TotalTime * 1000000;
@@ -217,6 +217,12 @@ namespace PerformanceLog {
       return thread;
     }
 
+    public bool NodeHasChildren(int nodeIndex) {
+      int minDepth = Calls[nodeIndex].Depth;
+
+      return nodeIndex < Calls.Length && Calls[nodeIndex+1].Depth > minDepth;
+    }
+
     public IEnumerable<CallRecord> GetChildNodesOfNode(int nodeIndex) {
       int minDepth = Calls[nodeIndex].Depth;
 
@@ -228,6 +234,21 @@ namespace PerformanceLog {
 
         if (Calls[i].Depth == minDepth+1) {
           yield return Calls[i];
+        }
+      }
+    }
+
+    public IEnumerable<int> GetChildNodesIndexs(int nodeIndex) {
+      int minDepth = Calls[nodeIndex].Depth;
+
+      for (int i = nodeIndex + 1; i < Calls.Length; i++) {
+
+        if (Calls[i].Depth <= minDepth) {
+          yield break;
+        }
+
+        if (Calls[i].Depth == minDepth + 1) {
+          yield return i;
         }
       }
     }

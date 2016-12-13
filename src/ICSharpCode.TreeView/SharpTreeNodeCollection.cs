@@ -1,14 +1,14 @@
-﻿// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
-// 
+// Copyright (c) 2014 AlphaSierraPapa for the SharpDevelop Team
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
 // without restriction, including without limitation the rights to use, copy, modify, merge,
 // publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 // to whom the Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all copies or
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 // INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 // PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -34,14 +34,14 @@ namespace ICSharpCode.TreeView
 		readonly SharpTreeNode parent;
 		List<SharpTreeNode> list = new List<SharpTreeNode>();
 		bool isRaisingEvent;
-		
+
 		public SharpTreeNodeCollection(SharpTreeNode parent)
 		{
 			this.parent = parent;
 		}
-		
+
 		public event NotifyCollectionChangedEventHandler CollectionChanged;
-		
+
 		void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
 		{
 			Debug.Assert(!isRaisingEvent);
@@ -54,13 +54,13 @@ namespace ICSharpCode.TreeView
 				isRaisingEvent = false;
 			}
 		}
-		
+
 		void ThrowOnReentrancy()
 		{
 			if (isRaisingEvent)
 				throw new InvalidOperationException();
 		}
-		
+
 		void ThrowIfValueIsNullOrHasParent(SharpTreeNode node)
 		{
 			if (node == null)
@@ -68,7 +68,7 @@ namespace ICSharpCode.TreeView
 			if (node.modelParent != null)
 				throw new ArgumentException("The node already has a parent", "node");
 		}
-		
+
 		public SharpTreeNode this[int index] {
 			get {
 				return list[index];
@@ -83,15 +83,15 @@ namespace ICSharpCode.TreeView
 				OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, oldItem, index));
 			}
 		}
-		
+
 		public int Count {
 			get { return list.Count; }
 		}
-		
+
 		bool ICollection<SharpTreeNode>.IsReadOnly {
 			get { return false; }
 		}
-		
+
 		public int IndexOf(SharpTreeNode node)
 		{
 			if (node == null || node.modelParent != parent)
@@ -99,7 +99,7 @@ namespace ICSharpCode.TreeView
 			else
 				return list.IndexOf(node);
 		}
-		
+
 		public void Insert(int index, SharpTreeNode node)
 		{
 			ThrowOnReentrancy();
@@ -107,7 +107,7 @@ namespace ICSharpCode.TreeView
 			list.Insert(index, node);
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, node, index));
 		}
-		
+
 		public void InsertRange(int index, IEnumerable<SharpTreeNode> nodes)
 		{
 			if (nodes == null)
@@ -122,7 +122,7 @@ namespace ICSharpCode.TreeView
 			list.InsertRange(index, newNodes);
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newNodes, index));
 		}
-		
+
 		public void RemoveAt(int index)
 		{
 			ThrowOnReentrancy();
@@ -130,7 +130,7 @@ namespace ICSharpCode.TreeView
 			list.RemoveAt(index);
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItem, index));
 		}
-		
+
 		public void RemoveRange(int index, int count)
 		{
 			ThrowOnReentrancy();
@@ -140,7 +140,7 @@ namespace ICSharpCode.TreeView
 			list.RemoveRange(index, count);
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItems, index));
 		}
-		
+
 		public void Add(SharpTreeNode node)
 		{
 			ThrowOnReentrancy();
@@ -148,12 +148,16 @@ namespace ICSharpCode.TreeView
 			list.Add(node);
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, node, list.Count - 1));
 		}
-		
+
 		public void AddRange(IEnumerable<SharpTreeNode> nodes)
 		{
 			InsertRange(this.Count, nodes);
 		}
-		
+
+        public void AddRange<T>(IEnumerable<SharpTreeNode> nodes) where T : SharpTreeNode {
+			InsertRange(this.Count, nodes);
+		}
+
 		public void Clear()
 		{
 			ThrowOnReentrancy();
@@ -161,17 +165,17 @@ namespace ICSharpCode.TreeView
 			list = new List<SharpTreeNode>();
 			OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldList, 0));
 		}
-		
+
 		public bool Contains(SharpTreeNode node)
 		{
 			return IndexOf(node) >= 0;
 		}
-		
+
 		public void CopyTo(SharpTreeNode[] array, int arrayIndex)
 		{
 			list.CopyTo(array, arrayIndex);
 		}
-		
+
 		public bool Remove(SharpTreeNode item)
 		{
 			int pos = IndexOf(item);
@@ -182,17 +186,17 @@ namespace ICSharpCode.TreeView
 				return false;
 			}
 		}
-		
+
 		public IEnumerator<SharpTreeNode> GetEnumerator()
 		{
 			return list.GetEnumerator();
 		}
-		
+
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return list.GetEnumerator();
 		}
-		
+
 		public void RemoveAll(Predicate<SharpTreeNode> match)
 		{
 			if (match == null)

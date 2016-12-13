@@ -270,6 +270,10 @@ namespace PerformanceLog {
       return NodeStatsLookup[GetNameId(name)];
     }
 
+    public PerfNodeStats GetNodeStats(int ppid) {
+      return NodeStatsLookup[ppid];
+    }
+
     public List<NodeStatsDiff> GetNodeStatsDiff(List<PerfNodeStats> old) {
 
       var result = new List<NodeStatsDiff>(old.Count);

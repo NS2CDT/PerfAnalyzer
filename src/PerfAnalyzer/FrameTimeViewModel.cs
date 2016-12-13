@@ -165,17 +165,28 @@ namespace PerfAnalyzer {
         frames = PLog.Frames.Select(f => new DataPoint(f.EndTimeMS, f.Time)).ToList();
 
         var markedFrames = PLog.Frames.
-                           Select(f => f.Markers.FirstOrDefault(m => m.Kind == MarkerKind.LUA_TRACESFLUSHED)).
-                           Where(m => m != null).
+                           Where(f => f.Markers.Length != 0).
+                           Select(f => f.Markers.FirstOrDefault(m => m.Kind == MarkerKind.LUA_TRACESFLUSHED) ?? f.Markers.First()).
                            ToList();
 
         var flushFrames = new HashSet<ProfileFrame>();
 
         foreach (var marker in markedFrames) {
           flushFrames.Add(marker.Frame);
+
+          var text = $"{marker.Kind}";
+
+          if (marker.Kind == MarkerKind.LUA_TRACESFLUSHED) {
+            text = $"Trace Flush {marker.Label} Thread: {marker.Frame.Threads[marker.ThreadId].Name}";
+          } else if (marker.Kind == MarkerKind.FOCUS_LOST || marker.Kind == MarkerKind.FOCUS_GAINED) {
+            text = $"{marker.Label}";
+          } else if(marker.UserValue != 0) {
+            text = $"{marker.Label} {marker.UserValue} Thread: {marker.Frame.Threads[marker.ThreadId].Name}";
+          }
+
           var annotation = new LineAnnotation() {
             X = marker.Frame.EndTimeMS,
-            Text = $"{marker.Label} {marker.UserValue} Thread: {marker.Frame.Threads[marker.ThreadId].Name}",
+            Text = text,
             Tag = marker,
             ToolTip = "",
             Type = LineAnnotationType.Vertical,

@@ -36,5 +36,7 @@
     <TextBox x:Name="NodeFilter" Grid.Column="2" Grid.Row="0" HorizontalAlignment="Left" Margin="28,7,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="281" Height="22"/>
     <GridSplitter x:Name="gridSplitter" Grid.Column="1" Grid.RowSpan="3" HorizontalAlignment="Center" Width="5" VerticalAlignment="Stretch"/>
     <Label Grid.Column="1" Content="⁞" Foreground="Black" Grid.RowSpan="3" VerticalAlignment="Center" FontSize="26" FontWeight="Bold" IsHitTestVisible="False"/>
+    <Button x:Name="ShowFrame" Content="Show Frame" HorizontalAlignment="Left" Margin="501,7,0,0" VerticalAlignment="Top" Width="75"/>
+    <Button x:Name="ClearSelection" Content="Clear Selection" HorizontalAlignment="Left" Margin="608,7,0,0" VerticalAlignment="Top" Width="90"/>
   </Grid>
 </UserControl>

@@ -62,7 +62,9 @@ namespace PerformanceLog {
     }
 
     public void CopyTo(T[] array, int arrayIndex) {
-      throw new NotImplementedException();
+      for (int i = Start; i < End; i++) {
+        array[arrayIndex + (i - Start)] = _list[i];
+      }
     }
 
     public int IndexOf(T item) {

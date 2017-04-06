@@ -247,6 +247,29 @@ namespace PerfAnalyzer {
       }
     }
 
+    public void ShowFrame() {
+
+      if (PLog.Frames.Count ==  0)
+      {
+        return;
+      }
+
+      var frame = PLog.Frames[0];
+
+      if (Ranges.Ranges.Count != 0) {
+        var range = Ranges.Ranges.Last();
+        var frames = PLog.GetFramesInRange(range.MinimumX, range.MaximumX);
+
+        frame = frames.OrderByDescending(f => f.MainThread.TimeMs).First();
+      }
+
+      Events.PublishOnUIThread(new ShowFrameDetails(frame));
+    }
+
+    public void ClearSelection() {
+      Ranges.ClearRanges();
+    }
+
     private List<DataPoint> _rawFrametimePoints;
 
     public List<DataPoint> FrametimePoints {

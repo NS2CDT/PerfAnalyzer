@@ -75,6 +75,7 @@ namespace PerfAnalyzer {
         range.MinimumX = 0;
         range.MaximumX = 0;
       }
+      Model.InvalidatePlot(false);
     }
 
     private void RemoveRange(RectangleAnnotation range) {

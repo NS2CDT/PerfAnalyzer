@@ -10,14 +10,24 @@ using System.IO;
 using System.Windows;
 
 namespace PerfAnalyzer {
+
+  public class ShowFrameDetails {
+    public ProfileFrame Frame { get; }
+
+    public ShowFrameDetails(ProfileFrame frame) {
+      Frame = frame;
+    }
+  }
+
   [Export(typeof(ShellViewModel))]
-  public class ShellViewModel : Conductor<IScreen>.Collection.AllActive, IViewAware {
+  public class ShellViewModel : Conductor<IScreen>.Collection.AllActive, IViewAware, IHandle<ShowFrameDetails> {
 
     private IWindowManager WindowManager;
     private readonly IEventAggregator Events;
     private ShellView View;
 
     public ObservableMRUList<RecentFile> RecentFiles;
+
 
     [ImportingConstructor]
     public ShellViewModel(IWindowManager windowManager, IEventAggregator events) {
@@ -76,10 +86,6 @@ namespace PerfAnalyzer {
         _currentProfileLog = value;
         NotifyOfPropertyChange();
         NotifyOfPropertyChange(nameof(Title));
-
-        if (value?.Frames.FirstOrDefault() != null) {
-          ShowFrameDetails(value.Frames.First());
-        }
 
         Events.PublishOnUIThread(value);
       }
@@ -177,6 +183,10 @@ namespace PerfAnalyzer {
         }
       }
       e.Handled = true;
+    }
+
+    public void Handle(ShowFrameDetails message) {
+      ShowFrameDetails(message.Frame);
     }
   }
 }

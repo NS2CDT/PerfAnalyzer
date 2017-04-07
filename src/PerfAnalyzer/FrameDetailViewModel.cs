@@ -7,6 +7,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace PerfAnalyzer {
 
@@ -174,6 +175,16 @@ namespace PerfAnalyzer {
 
       }
     }
+
+    public void ScrollFrames(object sender, MouseWheelEventArgs e) {
+      //FIXME: get system scroll amount or something
+      int delta = e.Delta > 0 ? 1 : -1;
+
+      var index = (int)Math.Min(Math.Max(Frame.FrameIndex + delta, 0), Log.Frames.Count-1);
+
+      Frame = Log.Frames[index];
+    }
+
     private SharpTreeNode BuildTreeRoot() {
 
       var root = new SharpTreeNode();

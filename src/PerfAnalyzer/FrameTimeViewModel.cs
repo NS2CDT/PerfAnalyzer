@@ -220,7 +220,7 @@ namespace PerfAnalyzer {
       FrametimePoints = frames;
 
       LeftAxis.Zoom(0, 60);
-      BottomAxis.ZoomAt(1, 0);
+      BottomAxis.Zoom(0, 1000 * 60);
       Model.InvalidatePlot(true);
     }
 

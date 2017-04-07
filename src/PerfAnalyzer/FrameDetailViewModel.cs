@@ -162,9 +162,18 @@ namespace PerfAnalyzer {
         NotifyOfPropertyChange(nameof(CanGotoPrevFrame));
         NotifyOfPropertyChange(nameof(CanGotoNextFrame));
         NotifyOfPropertyChange(nameof(FrameId));
+        NotifyOfPropertyChange(nameof(DisplayName));
       }
     }
 
+    public override string DisplayName {
+      get {
+        return $"Frame: {Frame.FrameIndex} Time: {TimeSpan.FromMilliseconds(Frame.StartTimeMS) :mm\\:ss\\:fff}";
+      }
+      set {
+
+      }
+    }
     private SharpTreeNode BuildTreeRoot() {
 
       var root = new SharpTreeNode();

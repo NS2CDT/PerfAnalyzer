@@ -93,6 +93,11 @@ namespace PerfAnalyzer {
           context.Target = target;
           context.Method = method;
           context.View = context.Source;
+        } else {
+
+          if (target.GetType().GetMethods().Any(m => m.Name == context.Message.MethodName)) {
+            throw new Exception($"Non of the methods found for binding {context.Message.MethodName} match paramter count");
+          }
         }
       }
     }

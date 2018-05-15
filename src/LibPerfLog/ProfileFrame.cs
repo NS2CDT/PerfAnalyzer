@@ -33,7 +33,7 @@ namespace PerformanceLog {
     public uint FrameIndex { get; private set; }
     public ProfileLog Owner { get; private set; }
     public ProfileFrame PrevFrame => FrameIndex > 0 ? Owner.Frames[(int)FrameIndex - 1] : null;
-    public ProfileFrame NextFrame => Owner.Frames[(int)FrameIndex +1];
+    public ProfileFrame NextFrame => FrameIndex < Owner.Frames.Count ? Owner.Frames[(int)FrameIndex +1] : null;
 
     public double TotalTimeMS => TotalTime * 1000000;
     public double StartTimeMS => StartTime / 1000.0;

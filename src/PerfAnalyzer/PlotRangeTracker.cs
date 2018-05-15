@@ -10,7 +10,7 @@ using OxyPlot.Series;
 namespace PerfAnalyzer {
   public class PlotRangeTracker {
     public PlotModel Model { get; private set; }
-    public List<RectangleAnnotation> Ranges { get; private set; }
+    private List<RectangleAnnotation> Ranges { get; }
 
     public int RangeLimit { get; set; } = 1;
     public bool CanCreateRanges { get; set; } = true;
@@ -117,12 +117,28 @@ namespace PerfAnalyzer {
 
       if (MouseMoveState == MoveState.CreatingRange) {
         // Don't create the range if it does not have a size set
-        if (_activeRange.MinimumX != _activeRange.MaximumX) {
+        if (Math.Abs(_activeRange.MinimumX-_activeRange.MaximumX) > 0.0001) {
+
+          // Flip ends around if the user dragged backwards
+          if (_activeRange.MinimumX > _activeRange.MaximumX)
+          {
+            var temp = _activeRange.MaximumX;
+            _activeRange.MaximumX = _activeRange.MinimumX;
+            _activeRange.MinimumX = temp;
+          }
+
+          // Clamp to 0 if the user dragged behind the start
+          if (_activeRange.MinimumX < 0) {
+            _activeRange.MinimumX = 0;
+          }
+
           RangeCreated?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
         } else {
           SetRanges.Remove(_activeRange);
+          _activeRange.MinimumX = _activeRange.MaximumX = 0;
           RangeRemoved?.Invoke(_activeRange, _activeRange.MinimumX, _activeRange.MaximumX);
         }
+        Model.InvalidatePlot(false);
       }
 
       MouseMoveState = MoveState.None;

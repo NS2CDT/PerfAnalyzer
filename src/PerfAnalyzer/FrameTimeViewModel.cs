@@ -256,8 +256,8 @@ namespace PerfAnalyzer {
 
       var frame = PLog.Frames[0];
 
-      if (Ranges.Ranges.Count != 0) {
-        var range = Ranges.Ranges.Last();
+      if (Ranges.SetRanges.Count != 0) {
+        var range = Ranges.SetRanges.Last();
         var frames = PLog.GetFramesInRange(range.MinimumX, range.MaximumX);
 
         frame = frames.OrderByDescending(f => f.MainThread.TimeMs).First();

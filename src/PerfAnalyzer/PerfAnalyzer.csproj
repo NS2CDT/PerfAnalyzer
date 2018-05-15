@@ -37,29 +37,23 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Caliburn.Micro, Version=3.0.1.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Caliburn.Micro.Core.3.0.1\lib\net45\Caliburn.Micro.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Caliburn.Micro, Version=3.2.0.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Caliburn.Micro.Core.3.2.0\lib\net45\Caliburn.Micro.dll</HintPath>
     </Reference>
-    <Reference Include="Caliburn.Micro.Platform, Version=3.0.1.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Caliburn.Micro.3.0.1\lib\net45\Caliburn.Micro.Platform.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Caliburn.Micro.Platform, Version=3.2.0.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Caliburn.Micro.3.2.0\lib\net45\Caliburn.Micro.Platform.dll</HintPath>
     </Reference>
-    <Reference Include="Caliburn.Micro.Platform.Core, Version=3.0.1.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Caliburn.Micro.3.0.1\lib\net45\Caliburn.Micro.Platform.Core.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Caliburn.Micro.Platform.Core, Version=3.2.0.0, Culture=neutral, PublicKeyToken=8e5891231f2ed21f, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Caliburn.Micro.3.2.0\lib\net45\Caliburn.Micro.Platform.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Dragablz, Version=0.0.3.178, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Dragablz.0.0.3.178\lib\net45\Dragablz.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Dragablz, Version=0.0.3.203, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Dragablz.0.0.3.203\lib\net45\Dragablz.dll</HintPath>
     </Reference>
-    <Reference Include="LinqStatistics, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\LinqStatistics.2.1.0\lib\net40\LinqStatistics.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="LinqStatistics, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\LinqStatistics.2.2.0\lib\net40\LinqStatistics.dll</HintPath>
     </Reference>
-    <Reference Include="MoreLinq, Version=2.0.20029.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\morelinq.2.0.0-beta06\lib\net35\MoreLinq.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="MoreLinq, Version=2.10.21623.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\morelinq.2.10.0\lib\net40\MoreLinq.dll</HintPath>
     </Reference>
     <Reference Include="OxyPlot">
       <HintPath>..\..\packages\OxyPlot.Core.1.0.0-unstable2100\lib\net45\OxyPlot.dll</HintPath>
@@ -96,9 +90,12 @@
       <HintPath>..\..\packages\System.Reactive.Windows.Threading.3.1.1\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Windows" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Caliburn.Micro.3.0.1\lib\net45\System.Windows.Interactivity.dll</HintPath>
+      <HintPath>..\..\packages\Caliburn.Micro.3.2.0\lib\net45\System.Windows.Interactivity.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Xml" />

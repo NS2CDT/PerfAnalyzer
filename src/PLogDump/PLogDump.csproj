@@ -36,25 +36,28 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LinqStatistics, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\LinqStatistics.2.1.0\lib\net40\LinqStatistics.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="LinqStatistics, Version=2.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\LinqStatistics.2.2.0\lib\net40\LinqStatistics.dll</HintPath>
     </Reference>
-    <Reference Include="MoreLinq, Version=2.0.19309.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\morelinq.2.0.0-beta04\lib\net35\MoreLinq.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="MoreLinq, Version=2.10.21623.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\morelinq.2.10.0\lib\net40\MoreLinq.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="Tababular, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Tababular.1.0.6\lib\NET45\Tababular.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Tababular, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Tababular.2.0.0\lib\net45\Tababular.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

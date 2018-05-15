@@ -640,15 +640,8 @@ namespace PerformanceLog {
       int start = Frames.BinarySearch(startMs, f => f.EndTimeMS, epsilon);
       int end = Frames.BinarySearch(endMs, f => f.EndTimeMS, epsilon);
 
-      if (start < 0) {
-        // Skip the value
-        start = (-start) + 1;
-      }
-
-      if (end < 0) {
-        // Skip the value
-        end = (-end);
-      }
+      start = Math.Abs(start);
+      end = Math.Abs(end);
 
       return new ListSlice<ProfileFrame>(Frames, start, end - start);
     }

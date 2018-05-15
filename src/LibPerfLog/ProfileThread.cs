@@ -69,7 +69,7 @@ namespace PerformanceLog {
 
     public string NodesString {
       get {
-        return Frame.GetNodeString(StartIndex, NodeCount != -1 ? StartIndex + NodeCount : Frame.Calls.Length);
+        return Frame.GetNodeString(StartIndex, NodeCount != -1 ? NodeCount : Frame.Calls.Length);
       }
     }
 

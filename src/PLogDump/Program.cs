@@ -98,7 +98,7 @@ namespace PLogDump {
       var maxFrameStep = gcframes.OrderByDescending(t => t).ToList();
 
       if (log.WaitForGCJobId != -1) {
-        PrintNode(log.NodeLookup[log.WaitForGCJobId], "WaitForGC");
+        PrintNode(log.NodeStatsLookup[log.WaitForGCJobId], "WaitForGC");
 
         var gcTimesFull = log.GetNodeTimes(log.WaitForGCJobId);
         Array.Sort(gcTimesFull);
@@ -115,7 +115,7 @@ namespace PLogDump {
       }
 
       if (log.WaitForGPUId != -1) {
-        PrintNode(log.NodeLookup[log.WaitForGPUId], "WaitForGPU");
+        PrintNode(log.NodeStatsLookup[log.WaitForGPUId], "WaitForGPU");
       }
 
 

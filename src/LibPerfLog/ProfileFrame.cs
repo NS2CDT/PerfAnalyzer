@@ -182,23 +182,30 @@ namespace PerformanceLog {
       int ownerId = Calls[entryPoint].ppid;
       var depth = Calls[entryPoint].Depth;
 
+      entryPoint = -1;
+
       /* Try to find a better node to use for a thread name and entryPoint if we hit HeapAllocator::Free or HeapAllocator::Allocate as the first node */
-      if (ownerId == Owner.HeapFreeId || ownerId == Owner.HeapAllocateId) {
-        for (int j = start + 1; j < Calls.Length; j++) {
+      for (int j = start + 1; j < Calls.Length; j++) {
 
-          if (Calls[j].Depth <= depth) {
-            break;
-          } else if (Calls[j].Depth != depth + 1) {
-            /* Reached the end of the nodes belonging to this thread */
-            continue;
-          }
-          int id = Calls[j].ppid;
 
-          if (id != Owner.HeapFreeId && id != Owner.HeapAllocateId) {
-            entryPoint = j;
-            ownerId = id;
-            break;
-          }
+        if (Calls[j].Depth < depth) {
+          break;
+        } else if (Calls[j].Depth != depth) {
+          /* Skip nested nodes */
+          continue;
+        }
+        int id = Calls[j].ppid;
+
+        if ((id == Owner.ServerGameUpdateId || id == Owner.ClientGameUpdateId)) {
+          entryPoint = j;
+          ownerId = id;
+          break;
+        }
+
+        // Set a default incase we don't find ClientGame or ServerGame update root node
+        if (entryPoint == -1 && id != Owner.HeapFreeId && id != Owner.HeapAllocateId) {
+          entryPoint = j;
+          ownerId = id;
         }
       }
 

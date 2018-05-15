@@ -115,6 +115,11 @@ namespace PerfAnalyzer {
         if (isExpanded[key]) {
           child.IsExpanded = true;
         }
+        if (key == selectedNodeKey) {
+          SelectedNode = child;
+          NotifyOfPropertyChange(nameof(SelectedNode));
+        }
+
         nodes.Add(child);
       }
 
@@ -220,6 +225,29 @@ namespace PerfAnalyzer {
         _treeroot = value;
         NotifyOfPropertyChange();
       }
+    }
+
+    private int selectedNodeKey;
+
+    public SharpTreeNode selectedNode;
+
+    public SharpTreeNode SelectedNode {
+      get {
+        return selectedNode;
+      }
+      set {
+        selectedNode = value;
+
+        if (value != null) {
+          selectedNodeKey = ((CallNodeModel)value).NodeKey;
+        }
+      }
+    }
+
+    public void ClearSelectedNode()
+    {
+      selectedNodeKey = 0;
+
     }
 
     public string FrameId {

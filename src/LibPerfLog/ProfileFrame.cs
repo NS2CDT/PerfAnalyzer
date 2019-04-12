@@ -157,6 +157,7 @@ namespace PerformanceLog {
       if (thread != null) {
         thread.NodeCount = Calls.Length - thread.StartIndex;
       }
+      Debug.Assert(MainThread != null);
     }
 
     private void SubTime(int index, int[] depthToParent) {

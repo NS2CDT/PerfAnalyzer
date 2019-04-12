@@ -30,7 +30,7 @@ namespace PerformanceLog {
     public uint GCCount { get; private set; }
     public int MaxDepth { get; internal set; }
 
-    public uint FrameIndex { get; private set; }
+    public int FrameIndex { get; private set; }
     public ProfileLog Owner { get; private set; }
     public ProfileFrame PrevFrame => FrameIndex > 0 ? Owner.Frames[(int)FrameIndex - 1] : null;
     public ProfileFrame NextFrame => FrameIndex < Owner.Frames.Count ? Owner.Frames[(int)FrameIndex +1] : null;
@@ -38,6 +38,7 @@ namespace PerformanceLog {
     public double TotalTimeMS => TotalTime * 1000000;
     public double StartTimeMS => StartTime / 1000.0;
     public double EndTimeMS => EndTime / 1000.0;
+    public bool IsSlowFrame => MainThread.TimeMs > Owner.SlowFrameThreshold;
 
     public uint GameTime => Sections[(int)PSectionId.Game].Time;
     public double GameRatio => GameTime / TotalTimeMS;
@@ -48,7 +49,7 @@ namespace PerformanceLog {
     public uint RenderingTime => Sections[(int)PSectionId.Rendering].Time;
     public double RenderingRatio => RenderingTime / TotalTimeMS;
 
-    public ProfileFrame(ProfileLog owner, uint frameIndex, long startTime, ProfileSection[] sections) {
+    public ProfileFrame(ProfileLog owner, int frameIndex, long startTime, ProfileSection[] sections) {
       Owner = owner;
       FrameIndex = frameIndex;
       EndTime = startTime;
@@ -179,6 +180,7 @@ namespace PerformanceLog {
     }
 
     private ProfileThread AddThread(int start) {
+      Debug.Assert(Calls[start].ppid == Owner.Threadppid);
       int entryPoint = start + 1;
       int ownerId, depth;
 
@@ -250,6 +252,22 @@ namespace PerformanceLog {
 
         if (Calls[i].Depth == minDepth+1) {
           yield return Calls[i];
+        }
+      }
+    }
+
+
+    public IEnumerable<int> GetNodeParentIndexes(int nodeIndex, int limit = -1) {
+      int curDepth = Calls[nodeIndex].Depth;
+
+      for (int i = nodeIndex - 1; i >= 0; i--) {
+        if (Calls[i].Depth == 0 || (limit >= 0 && i <= limit)) {
+          yield break;
+        }
+
+        if (Calls[i].Depth < curDepth) {
+          curDepth = Calls[i].Depth;
+          yield return i;
         }
       }
     }

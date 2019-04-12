@@ -10,11 +10,12 @@
              mc:Ignorable="d"
              MinHeight="500"
              MinWidth="705">
-  <Grid Margin="10,0,10,10" VerticalAlignment="Stretch">
+  <Grid Margin="10,10,10,10" VerticalAlignment="Stretch">
     <Grid.RowDefinitions>
-      <RowDefinition Height="60"/>
+      <RowDefinition Height="30" />
       <RowDefinition Height="*" MinHeight="200"/>
     </Grid.RowDefinitions>
+
     <treeview:SharpTreeView x:Name="CallNodeList" Margin="10,17,10,10"
                                 VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
@@ -46,16 +47,29 @@
       </ListView.View>
     </treeview:SharpTreeView>
 
-    <StackPanel HorizontalAlignment="Left" Height="27" Margin="10,27,0,0" VerticalAlignment="Top" Width="242" Orientation="Horizontal" Grid.Row="0">
-      <Button x:Name="GotoPrevFrame" Content="Prev" Width="40" HorizontalAlignment="Center"/>
-      <Button x:Name="GotoNextFrame" Content="Next" Width="40" HorizontalAlignment="Center"/>
-      <Label x:Name="label" Content="Frame:"/>
-      <TextBox x:Name="FrameId" TextWrapping="Wrap" Text="TextBox" Width="102" HorizontalAlignment="Right" Margin="5,0,0,0"
+    <Grid VerticalAlignment="Stretch">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition />
+        <ColumnDefinition />
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <StackPanel HorizontalAlignment="Left" Height="27" Margin="10,0,0,0" VerticalAlignment="Top"  Orientation="Horizontal" Grid.Column="0">
+        <Button x:Name="GotoPrevFrame" Content="Prev" Width="40" HorizontalAlignment="Center" Margin="0,0,2,0"/>
+        <Button x:Name="GotoNextFrame" Content="Next" Width="40" HorizontalAlignment="Center"/>
+        <Label x:Name="label" Content="Frame:" Margin="5,0,0,0"/>
+        <TextBox x:Name="FrameId" TextWrapping="Wrap" Text="TextBox" Width="102" HorizontalAlignment="Right" Margin="5,0,0,0"
                cal:Message.Attach="[Event MouseWheel] = [Action ScrollFrames($this, $eventArgs)]"/>
-    </StackPanel>
-    <StackPanel HorizontalAlignment="Left" Height="27" Margin="323,27,0,0" VerticalAlignment="Top" Width="154" Orientation="Horizontal" Grid.Row="0">
-      <Button x:Name="CollapseAll" Content="Collapse All" Width="75" HorizontalAlignment="Left" Height="27"/>
-      <Button x:Name="ExpandAll" Content="Expand All" Width="75"  Height="27"/>
-    </StackPanel>
+      </StackPanel>
+      <StackPanel HorizontalAlignment="Left" Height="27" Margin="0,0,0,0" VerticalAlignment="Top" Orientation="Horizontal" Grid.Column="1" Grid.ColumnSpan="2">
+        <Label Content="Slow Frames:" Margin="10,0,0,0" />
+        <Button x:Name="GotoPrevSlowFrame" Content="Prev" Width="35" HorizontalAlignment="Center" Margin="0,0,2,0" />
+        <Button x:Name="GotoNextSlowFrame" Content="Next" Width="35" HorizontalAlignment="Center" />
+      </StackPanel>
+      <StackPanel HorizontalAlignment="Left" Height="27"  VerticalAlignment="Top" Width="154" Orientation="Horizontal" Grid.Column="2">
+        <Button x:Name="CollapseAll" Content="Collapse All" Width="75" HorizontalAlignment="Left" Height="27"/>
+        <Button x:Name="ExpandAll" Content="Expand All" Width="75"  Height="27"/>
+      </StackPanel>
+    </Grid>
   </Grid>
 </UserControl>

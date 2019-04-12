@@ -67,6 +67,10 @@ namespace PerformanceLog {
       return index != -1 ? Frame.Calls[index] : default(CallRecord);
     }
 
+    public IEnumerable<int> GetNodeParentIndexes(int nodeIndex) {
+      return Frame.GetNodeParentIndexes(nodeIndex, StartIndex);
+    }
+
     public string NodesString {
       get {
         return Frame.GetNodeString(StartIndex, NodeCount != -1 ? NodeCount : Frame.Calls.Length);
@@ -75,6 +79,32 @@ namespace PerformanceLog {
 
     public override string ToString() {
       return $"Thread({Name}) Time: {TimeMs:F3}ms Nodes: {NodeCount}";
+    }
+
+    public int PeakExclusiveIndex() {
+      uint peak = 0;
+      int index = -1;
+      var nodes = Frame.Calls;
+      for (int i = StartIndex; i < StartIndex + NodeCount; i++) {
+        if (nodes[i].ExclusiveTime > peak) {
+          index = i;
+          peak = nodes[i].ExclusiveTime;
+        }
+      }
+      return index;
+    }
+
+    public int PeakInclusiveIndex() {
+      uint peak = 0;
+      int index = -1;
+      var nodes = Frame.Calls;
+      for (int i = StartIndex; i < StartIndex + NodeCount; i++) {
+        if (nodes[i].Time > peak) {
+          index = i;
+          peak = nodes[i].Time;
+        }
+      }
+      return index;
     }
 
     internal void AddIdleTime(uint time, uint count) {

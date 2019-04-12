@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MoreLinq;
+using LinqStatistics;
 
 namespace PerformanceLog {
 
@@ -320,21 +321,56 @@ namespace PerformanceLog {
       NodeStats = GetStatsForRange(0, Frames.Count);
       NodeStatsLookup = NodeStats.ToDictionary(n => n.Id, n => n);
 
-      /*
-            cppNames = ppLookup.Keys.Where(k => k.Contains("::")).ToHashSet();
+      var sortedFrames = Frames.
+                         OrderByDescending(f => f.MainThread.Time).
+                         ToArray();
+      var avgtime = sortedFrames.
+                    Skip((int)(sortedFrames.Length * 0.1)).
+                    Select(f => f.MainThread.TimeMs).
+                    Average();
+      // Treat any frame that is more than 80% slower than the average of 90 percentile frame time as a slow frame
+      SlowFrameThreshold = avgtime * 1.8;
 
-            var times = Frames.Select(f => f.TotalTime).OrderByDescending(i => i).ToArray();
-
-            var maxFrame = Frames.MaxBy(f => f.TotalTime);
-           // var avg = Frames.Where(f => f.TotalTime > 180).Average(f => f.TotalTime);
-
-      var threadList = Frames.SelectMany(f => f.Threads).ToList();
-
-      var threads = threadList.GroupBy(t => t.Name).ToLookup(g => g.Key, g => g?.ToList());
-         */
-
+      SlowFrames = Frames.
+                   Skip(2). // Skip the first two frames that could be the game still loading in or something
+                   Where(f => f.MainThread.TimeMs > SlowFrameThreshold).
+                   ToList();
 
       return;
+    }
+
+    public int PrevSlowFrame(int startIndex) {
+      if (startIndex == 0 || SlowFrames.Count == 0 || startIndex >= Frames.Count - 1) {
+        return -1;
+      }
+      if (startIndex <= SlowFrames[0].FrameIndex) {
+        return -1;
+      }
+      Debug.Assert(startIndex <= Frames.Count);
+      var index = SlowFrames.BinarySearch(startIndex-1, f => f.FrameIndex);
+      if (index < 0) {
+        index = -index;
+      }
+      if (SlowFrames[index].FrameIndex == startIndex) {
+        index--;
+      }
+      return index >= 0 ? SlowFrames[index].FrameIndex : -1;
+    }
+
+    public int NextSlowFrame(int startIndex) {
+      if (SlowFrames.Count == 0 || startIndex >= Frames.Count-1) {
+        return -1;
+      }
+      if (startIndex >= SlowFrames.Last().FrameIndex) {
+        return -1;
+      }
+      Debug.Assert(startIndex <= Frames.Count);
+      var index = SlowFrames.BinarySearch(startIndex, f => f.FrameIndex);
+      if (index < 0) {
+        index = -index;
+      }
+
+      return SlowFrames[index + 1].FrameIndex;
     }
 
     private void ParseLoop() {
@@ -426,7 +462,7 @@ namespace PerformanceLog {
     }
 
     private bool skippedFirstFrame = false;
-    uint frameCount = 0;
+    int frameCount = 0;
     long prevTime = 0;
 
     private ProfileFrame _currentframe;
@@ -859,6 +895,9 @@ namespace PerformanceLog {
 
     //Returns duration of log in seconds
     public double Duration => ((Frames.Last().EndTimeMS - Frames.First().EndTimeMS) / 1000);
+
+    public double SlowFrameThreshold { get; private set; } = 10.0;
+    public List<ProfileFrame> SlowFrames { get; private set; }
 
     public override string ToString() {
       return $"{Path.GetFileName(FilePath)} Frames: {Frames.Count} Time: {Duration} seconds";

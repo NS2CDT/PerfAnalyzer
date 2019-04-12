@@ -75,6 +75,25 @@ namespace PerfAnalyzer {
       }
     }
 
+    public CallNodeModel GetChild(int nodeIndex) {
+      EnsureLazyChildren();
+
+      foreach (CallNodeModel child in Children) {
+        if (child.CallRecordIndex == nodeIndex) {
+          return child;
+        }
+      }
+      return null;
+    }
+
+    public bool ExpandChild(int nodeIndex) {
+      var child = GetChild(nodeIndex);
+      if (child != null) {
+        child.IsExpanded = true;
+      }
+      return child != null;
+    }
+
     protected override void LoadChildren() {
       Children.AddRange(Owner.GetChildNodeList(this));
     }
@@ -85,6 +104,10 @@ namespace PerfAnalyzer {
 
     protected override void OnCollapsing() {
       Owner.SetExpanded(NodeKey, false);
+    }
+
+    public override string ToString() {
+      return $"{CallRecordIndex}: {Name}({Id}) IsExpanded = {IsExpanded}";
     }
   }
 
@@ -117,7 +140,6 @@ namespace PerfAnalyzer {
         }
         if (key == selectedNodeKey) {
           SelectedNode = child;
-          NotifyOfPropertyChange(nameof(SelectedNode));
         }
 
         nodes.Add(child);
@@ -167,6 +189,8 @@ namespace PerfAnalyzer {
         NotifyOfPropertyChange();
         NotifyOfPropertyChange(nameof(CanGotoPrevFrame));
         NotifyOfPropertyChange(nameof(CanGotoNextFrame));
+        NotifyOfPropertyChange(nameof(CanGotoNextSlowFrame));
+        NotifyOfPropertyChange(nameof(CanGotoPrevSlowFrame));
         NotifyOfPropertyChange(nameof(FrameId));
         NotifyOfPropertyChange(nameof(DisplayName));
       }
@@ -240,7 +264,14 @@ namespace PerfAnalyzer {
 
         if (value != null) {
           selectedNodeKey = ((CallNodeModel)value).NodeKey;
+
+          if (!value.IsSelected) {
+            value.IsSelected = true;
+          }
+        } else {
+          selectedNodeKey = 0;
         }
+        NotifyOfPropertyChange();
       }
     }
 
@@ -297,6 +328,78 @@ namespace PerfAnalyzer {
       }
     }
 
+    public bool CanGotoNextSlowFrame => Frame.Owner.NextSlowFrame(Frame.FrameIndex) != -1;
+
+    public void GotoNextSlowFrame() {
+      var index = Frame.Owner.NextSlowFrame(Frame.FrameIndex);
+
+      if (index != -1) {
+        Frame = Frame.Owner.Frames[index];
+        var node = ExpandToIndex(Frame.MainThread.PeakExclusiveIndex());
+        SelectedNode = node;
+      }
+    }
+
+    public bool CanGotoPrevSlowFrame => Frame.Owner.PrevSlowFrame(Frame.FrameIndex) != -1;
+ 
+    public void GotoPrevSlowFrame() {
+      var index = Frame.Owner.PrevSlowFrame(Frame.FrameIndex);
+
+      if (index != -1) {
+        Frame = Frame.Owner.Frames[index];
+        var node = ExpandToIndex(Frame.MainThread.PeakExclusiveIndex());
+        SelectedNode = node;
+      }
+    }
+
+    public CallNodeModel GetNodeModel(int nodeIndex) {
+      CallTree.EnsureLazyChildren();
+      var parentIndexes = Frame.GetNodeParentIndexes(nodeIndex, 0).Reverse().ToList();
+      // Fist node is not a CallNodeModel
+      var currNode = CallTree.Children.Cast<CallNodeModel>().
+                     FirstOrDefault(c => c.CallRecordIndex == parentIndexes.First());
+      if (currNode == null) {
+        return null;
+      }
+      foreach (var parentIndex in parentIndexes.Skip(1)) {
+        currNode = currNode.GetChild(parentIndex);
+      }
+
+      return currNode.GetChild(nodeIndex);
+    }
+
+    public CallNodeModel ExpandToIndex(int nodeIndex) {
+      var node = GetNodeModel(nodeIndex);
+
+      var parent = node.Parent;
+      while (parent != null) {
+        parent.IsExpanded = true;
+        parent = parent.Parent;
+      }
+      return node;
+    }
+
+    public CallNodeModel ExpandTreeChain(IEnumerable<int> nodeIndexs) {
+      var currNode = ExpandChild(nodeIndexs.First());
+
+      foreach (var parent in nodeIndexs.Skip(1)) {
+        currNode = currNode.GetChild(parent);
+        currNode.IsExpanded = true;
+      }
+      return currNode;
+    }
+
+    public CallNodeModel ExpandChild(int nodeIndex) {
+      CallTree.EnsureLazyChildren();
+
+      foreach (CallNodeModel child in CallTree.Children) {
+        if (child.CallRecordIndex == nodeIndex) {
+          child.IsExpanded = true;
+          return child;
+        }
+      }
+      return null;
+    }
 
     private void ExpandRecursively(SharpTreeNode node) {
 

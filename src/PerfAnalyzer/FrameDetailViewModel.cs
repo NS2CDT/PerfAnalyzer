@@ -51,7 +51,7 @@ namespace PerfAnalyzer {
       ExclTime = thread.TimeMs - thread.GetChildTimeMs();
       Calls = 1;
 
-      CallRecordIndex = thread.StartIndex+1;
+      CallRecordIndex = thread.StartIndex;
       LazyLoading = thread.NodeCount != 0;
     }
 
@@ -103,7 +103,7 @@ namespace PerfAnalyzer {
 
       var nodes = new List<CallNodeModel>();
 
-      foreach (var index in Frame.GetChildNodesIndexs(parent.CallRecordIndex)) {
+      foreach (var index in Frame.GetChildNodesIndexs(parent.CallRecordIndex, Frame.Calls[parent.CallRecordIndex].Depth)) {
         int nameId = Frame.Calls[index].ppid;
         int key = GetNodeKey(nameId, parent.NodeKey);
 

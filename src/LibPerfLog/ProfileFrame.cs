@@ -180,34 +180,42 @@ namespace PerformanceLog {
 
     private ProfileThread AddThread(int start) {
       int entryPoint = start + 1;
-      int ownerId = Calls[entryPoint].ppid;
-      var depth = Calls[entryPoint].Depth;
+      int ownerId, depth;
 
-      entryPoint = -1;
+      /* Don't crash if were a thread with no children at the end of the calls array */
+      if (entryPoint < Calls.Length && Calls[start].ppid == Owner.Threadppid) {
+        ownerId = Calls[entryPoint].ppid;
+        depth = Calls[entryPoint].Depth;
+        entryPoint = -1;
 
-      /* Try to find a better node to use for a thread name and entryPoint if we hit HeapAllocator::Free or HeapAllocator::Allocate as the first node */
-      for (int j = start + 1; j < Calls.Length; j++) {
+        /* Try to find a better node to use for a thread name and entryPoint if we hit HeapAllocator::Free or HeapAllocator::Allocate as the first node */
+        for (int j = start + 1; j < Calls.Length; j++) {
 
 
-        if (Calls[j].Depth < depth) {
-          break;
-        } else if (Calls[j].Depth != depth) {
-          /* Skip nested nodes */
-          continue;
+          if (Calls[j].Depth < depth) {
+            break;
+          } else if (Calls[j].Depth != depth) {
+            /* Skip nested nodes */
+            continue;
+          }
+          int id = Calls[j].ppid;
+
+          if ((id == Owner.ServerGameUpdateId || id == Owner.ClientGameUpdateId)) {
+            entryPoint = j;
+            ownerId = id;
+            break;
+          }
+
+          // Set a default incase we don't find ClientGame or ServerGame update root node
+          if (entryPoint == -1 && id != Owner.HeapFreeId && id != Owner.HeapAllocateId) {
+            entryPoint = j;
+            ownerId = id;
+          }
         }
-        int id = Calls[j].ppid;
-
-        if ((id == Owner.ServerGameUpdateId || id == Owner.ClientGameUpdateId)) {
-          entryPoint = j;
-          ownerId = id;
-          break;
-        }
-
-        // Set a default incase we don't find ClientGame or ServerGame update root node
-        if (entryPoint == -1 && id != Owner.HeapFreeId && id != Owner.HeapAllocateId) {
-          entryPoint = j;
-          ownerId = id;
-        }
+      } else {
+        depth = Calls[start].Depth+1;
+        ownerId = Owner.Threadppid;
+        entryPoint = start;
       }
 
       var thread = new ProfileThread(this, ownerId, Owner.ppMap[ownerId]) {
@@ -228,7 +236,7 @@ namespace PerformanceLog {
     public bool NodeHasChildren(int nodeIndex) {
       int minDepth = Calls[nodeIndex].Depth;
 
-      return nodeIndex < Calls.Length && Calls[nodeIndex+1].Depth > minDepth;
+      return nodeIndex < (Calls.Length-1) && Calls[nodeIndex+1].Depth > minDepth;
     }
 
     public IEnumerable<CallRecord> GetChildNodesOfNode(int nodeIndex) {
@@ -246,12 +254,12 @@ namespace PerformanceLog {
       }
     }
 
-    public IEnumerable<int> GetChildNodesIndexs(int nodeIndex) {
-      int minDepth = Calls[nodeIndex].Depth;
+    public IEnumerable<int> GetChildNodesIndexs(int nodeIndex, int minDepth = -1) {
+      minDepth = minDepth != -1 ? minDepth : Calls[nodeIndex].Depth;
 
       for (int i = nodeIndex + 1; i < Calls.Length; i++) {
 
-        if (Calls[i].Depth <= minDepth) {
+        if (Calls[i].Depth < minDepth) {
           yield break;
         }
 

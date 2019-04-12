@@ -11,7 +11,7 @@
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="220*"/>
       <ColumnDefinition Width="9"/>
-      <ColumnDefinition Width="162*"/>
+      <ColumnDefinition Width="600"/>
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
       <RowDefinition Height="9*"/>
@@ -29,6 +29,7 @@
         <DataGridTextColumn Header="TotalIncl" Binding="{Binding TotalInclusiveTime, StringFormat=\{0:F2\}}" Width="65"/>
         <DataGridTextColumn Header="AvgFrame" Binding="{Binding AvgFrameTime, StringFormat=\{0:F2\}}" Width="60"/>
         <DataGridTextColumn Header="FramePeak" Binding="{Binding PeakFrameTime, StringFormat=\{0:F2\}}" Width="60"/>
+        <DataGridTextColumn Header="Calls" Binding="{Binding CallCount, StringFormat=\{0\}}" Width="40"/>
       </DataGrid.Columns>
     </DataGrid>
     <Slider x:Name="DownsampleLimit" HorizontalAlignment="Left" Margin="273,7,0,0" VerticalAlignment="Top" Width="195" Height="22" Minimum="10" Maximum="2000"/>

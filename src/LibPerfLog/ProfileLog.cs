@@ -367,7 +367,7 @@ namespace PerformanceLog {
       Debug.Assert(startIndex <= Frames.Count);
       var index = SlowFrames.BinarySearch(startIndex, f => f.FrameIndex);
       if (index < 0) {
-        index = -index;
+        index = (-index) - 1;
       }
 
       return SlowFrames[index + 1].FrameIndex;

@@ -256,7 +256,6 @@ namespace PerformanceLog {
       }
     }
 
-
     public IEnumerable<int> GetNodeParentIndexes(int nodeIndex, int limit = -1) {
       int curDepth = Calls[nodeIndex].Depth;
 
@@ -272,12 +271,14 @@ namespace PerformanceLog {
       }
     }
 
+    // Find all child nodes of the node at nodeIndex. We keep scanning forward until we find
+    // node with a depth equal to or less minDepth, which signifies the end of the parent node
     public IEnumerable<int> GetChildNodesIndexs(int nodeIndex, int minDepth = -1) {
       minDepth = minDepth != -1 ? minDepth : Calls[nodeIndex].Depth;
 
       for (int i = nodeIndex + 1; i < Calls.Length; i++) {
 
-        if (Calls[i].Depth < minDepth) {
+        if (Calls[i].Depth <= minDepth) {
           yield break;
         }
 

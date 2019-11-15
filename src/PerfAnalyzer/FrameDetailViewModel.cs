@@ -126,7 +126,7 @@ namespace PerfAnalyzer {
 
       var nodes = new List<CallNodeModel>();
 
-      foreach (var index in Frame.GetChildNodesIndexs(parent.CallRecordIndex, Frame.Calls[parent.CallRecordIndex].Depth)) {
+      foreach (var index in Frame.GetChildNodesIndexs(parent.CallRecordIndex)) {
         int nameId = Frame.Calls[index].ppid;
         int key = GetNodeKey(nameId, parent.NodeKey);
 

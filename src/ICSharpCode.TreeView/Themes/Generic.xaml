@@ -227,10 +227,12 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Default:SharpTreeNodeView}">
-                    <Grid Height="16">
+                    <Grid Height="16" VerticalAlignment="Top" HorizontalAlignment="Left">
+
+                        
                         <Default:LinesRenderer Name="linesRenderer"
                                                Visibility="{Binding ShowLines, RelativeSource={RelativeSource AncestorType={x:Type Default:SharpTreeView}}, Converter={Default:CollapsedWhenFalse}}" />
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left">
                             <FrameworkElement Name="spacer" />
                             <ToggleButton Name="expander"
                                           Style="{StaticResource ExpandCollapseToggleStyle}"

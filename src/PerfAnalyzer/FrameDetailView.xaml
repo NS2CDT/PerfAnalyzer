@@ -8,7 +8,7 @@
              mc:Ignorable="d"
              MinHeight="500"
              MinWidth="705">
-  <Grid Margin="10,10,10,10" VerticalAlignment="Stretch">
+  <Grid Margin="10,10,10,10" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
     <Grid.RowDefinitions>
       <RowDefinition Height="30" />
       <RowDefinition Height="*" MinHeight="200"/>
@@ -27,12 +27,12 @@
             <GridViewColumn Width="Auto">
               <GridViewColumn.CellTemplate>
                 <DataTemplate>
-                  <treeview:SharpTreeNodeView />
+                  <treeview:SharpTreeNodeView Width="Auto" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
                 </DataTemplate>
               </GridViewColumn.CellTemplate>
             </GridViewColumn>
 
-            <GridViewColumn Header="Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
+            <GridViewColumn Header="Name" Width="Auto" DisplayMemberBinding="{Binding Name}"/>
             <GridViewColumn Header="Inc Time" Width="60" DisplayMemberBinding="{Binding InclTime, StringFormat=\{0:F3\}}"/>
             <GridViewColumn Header="Exl Time" Width="60" DisplayMemberBinding="{Binding ExclTime, StringFormat=\{0:F3\}}"/>
             <GridViewColumn Header="%" Width="40" DisplayMemberBinding="{Binding Percent, StringFormat=\{0:F1\}}"/>

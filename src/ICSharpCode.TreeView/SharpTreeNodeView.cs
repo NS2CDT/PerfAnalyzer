@@ -40,7 +40,7 @@ namespace ICSharpCode.TreeView
         }
 
         public SharpTreeNodeView() {
-            HorizontalAlignment = HorizontalAlignment.Stretch;
+            HorizontalAlignment = HorizontalAlignment.Left;
         }
 
 		public static readonly DependencyProperty TextBackgroundProperty =
@@ -94,7 +94,12 @@ namespace ICSharpCode.TreeView
 			base.OnPropertyChanged(e);
 			if (e.Property == DataContextProperty) {
 				UpdateDataContext(e.OldValue as SharpTreeNode, e.NewValue as SharpTreeNode);
-			}
+                if (ParentItem != null) {
+                    ((GridView)ParentTreeView?.View).Columns[0].Width = 0;
+                    ((GridView)ParentTreeView?.View).Columns[0].Width = double.NaN;
+                    InvalidateMeasure();
+                }
+            }
 		}
 
 		void UpdateDataContext(SharpTreeNode oldNode, SharpTreeNode newNode)
@@ -181,5 +186,12 @@ namespace ICSharpCode.TreeView
 			}
 			return result;
 		}
-	}
+
+        protected override Size MeasureOverride(Size arrangeBounds) {
+            var child = VisualTreeHelper.GetChild(this, 0) as Panel;
+            child.Measure(new Size(double.PositiveInfinity, arrangeBounds.Height));
+         //   MinWidth = child.DesiredSize.Width;
+            return new Size(child.DesiredSize.Width, child.DesiredSize.Height);
+        }
+    }
 }

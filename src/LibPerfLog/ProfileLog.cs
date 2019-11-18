@@ -256,10 +256,9 @@ namespace PerformanceLog {
     }
 
     public HashSet<int> GetMatchNames(string label) {
-      return Names.Index().
-             Where(p => !NetMsgIds.Contains(p.Key) && p.Value.IndexOf(label, StringComparison.OrdinalIgnoreCase) != -1).
-             Select(p => p.Key).
-             ToHashSet();
+      return Enumerable.ToHashSet(Names.Index().
+                        Where(p => !NetMsgIds.Contains(p.Key) && p.Value.IndexOf(label, StringComparison.OrdinalIgnoreCase) != -1).
+                        Select(p => p.Key));
     }
 
     public int GetNameId(string name) {

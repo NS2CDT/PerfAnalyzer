@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27428.2043
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29505.145
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibPerfLog", "src\LibPerfLog\LibPerfLog.csproj", "{487AA2B3-F8C8-4769-B387-8CE52CF4EC7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibPerfLog", "src\LibPerfLog\LibPerfLog.csproj", "{487AA2B3-F8C8-4769-B387-8CE52CF4EC7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PLogDump", "src\PLogDump\PLogDump.csproj", "{5668E929-4651-495F-B526-BEBD127D024A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PLogDump", "src\PLogDump\PLogDump.csproj", "{5668E929-4651-495F-B526-BEBD127D024A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfAnalyzer", "src\PerfAnalyzer\PerfAnalyzer.csproj", "{95EE375A-4103-4E25-9ABF-70FDD68178B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerfAnalyzer", "src\PerfAnalyzer\PerfAnalyzer.csproj", "{95EE375A-4103-4E25-9ABF-70FDD68178B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICSharpCode.TreeView", "src\ICSharpCode.TreeView\ICSharpCode.TreeView.csproj", "{DDE2A481-8271-4EAC-A330-8FA6A38D13D1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.TreeView", "src\ICSharpCode.TreeView\ICSharpCode.TreeView.csproj", "{DDE2A481-8271-4EAC-A330-8FA6A38D13D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -25,7 +25,9 @@
     <PackageReference Include="Dragablz" Version="0.0.3.203" />
     <PackageReference Include="LinqStatistics" Version="2.2.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.6.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.4.33" />
     <PackageReference Include="morelinq" Version="3.2.0" />
+    <PackageReference Include="Ookii.Dialogs.Wpf" Version="1.1.0" />
     <PackageReference Include="OxyPlot.Core" Version="1.0.0-unstable2100" />
     <PackageReference Include="OxyPlot.Wpf" Version="1.0.0-unstable2100" />
     <PackageReference Include="System.ComponentModel.Composition" Version="4.6.0" />

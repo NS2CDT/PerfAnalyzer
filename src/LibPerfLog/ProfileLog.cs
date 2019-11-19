@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MoreLinq;
 using LinqStatistics;
+using System.Threading;
 
 namespace PerformanceLog {
 
@@ -249,6 +250,14 @@ namespace PerformanceLog {
       Load(filePath);
     }
 
+    public static Task<ProfileLog> OpenAsync(string path, CancellationToken ct) {
+      return Task.Factory.StartNew(() => {
+        var plog = new ProfileLog();
+        plog.Load(path, ct);
+        return plog;
+      }, ct, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
     public List<PerfNodeStats> GetMatchingNodes(string label) {
       var nodeIds = GetMatchNames(label);
 
@@ -289,7 +298,7 @@ namespace PerformanceLog {
       return result;
     }
 
-    internal void Load(string filePath) {
+    public void Load(string filePath, CancellationToken ct = default, bool multithreadLoad = true) {
       FilePath = filePath;
       var logName = Path.GetFileName(filePath);
 
@@ -300,25 +309,32 @@ namespace PerformanceLog {
         profileCostPerCall = readVarInt() * 1E-12;
 
         using (new Timer("Parse plog: " + logName)) {
-          ParseLoop();
+          ParseLoop(ct);
         }
       }
+
+      ct.ThrowIfCancellationRequested();
 
       ProcessNameIds();
 
       using (new Timer("ComputeTimes plog: " + logName)) {
-#if true
-        Parallel.ForEach(Frames, f => f.ComputeTime());
-#else
-      foreach (var f in Frames) {
-        f.ComputeTime();
+        if (multithreadLoad) {
+          Parallel.ForEach(Frames, new ParallelOptions() { CancellationToken = ct }, f => f.ComputeTime());
+        } else {
+          foreach (var f in Frames) {
+            f.ComputeTime();
+            ct.ThrowIfCancellationRequested();
+          }
+        }
       }
-#endif
-      }
+
+      ct.ThrowIfCancellationRequested();
 
       TotalNodes = Frames.Sum(f => f.Calls.Length);
       NodeStats = GetStatsForRange(0, Frames.Count);
       NodeStatsLookup = NodeStats.ToDictionary(n => n.Id, n => n);
+
+      ct.ThrowIfCancellationRequested();
 
       var sortedFrames = Frames.
                          OrderByDescending(f => f.MainThread.Time).
@@ -372,7 +388,7 @@ namespace PerformanceLog {
       return SlowFrames[index + 1].FrameIndex;
     }
 
-    private void ParseLoop() {
+    private void ParseLoop(CancellationToken ct = default) {
       int depth = 0;
       string name;
 
@@ -393,6 +409,7 @@ namespace PerformanceLog {
 
         switch (type) {
           case PlogEntryType.Frame:
+            ct.ThrowIfCancellationRequested();
             depth = 1;
 
             if (lastFrame != null) {

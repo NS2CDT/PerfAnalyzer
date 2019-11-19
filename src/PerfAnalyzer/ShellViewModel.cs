@@ -8,6 +8,10 @@ using Caliburn.Micro;
 using PerformanceLog;
 using System.IO;
 using System.Windows;
+using System.Threading;
+using Ookii.Dialogs.Wpf;
+using Microsoft.VisualStudio.Threading;
+using System.ComponentModel;
 
 namespace PerfAnalyzer {
 
@@ -27,14 +31,18 @@ namespace PerfAnalyzer {
     private ShellView View;
 
     public ObservableMRUList<RecentFile> RecentFiles;
-
+    JoinableTaskFactory TaskFactory;
 
     [ImportingConstructor]
     public ShellViewModel(IWindowManager windowManager, IEventAggregator events) {
       WindowManager = windowManager;
       Events = events;
-
+      TaskFactory = App.TaskFactory;
+      CurrentPLog = new ProfileLog();
       RecentFiles = Properties.Settings.Default.RecentLogs;
+
+      ActivateItem(new FrameTimeViewModel(Events));
+      events.Subscribe(this);
 
       var startupTrace = RecentFiles.FirstOrDefault()?.Filepath;
 
@@ -43,18 +51,8 @@ namespace PerfAnalyzer {
       }
 
       if (File.Exists(startupTrace)) {
-        try {
-          CurrentPLog = new ProfileLog(startupTrace);
-        } catch (Exception e) {
-          MessageBox.Show(e.Message + "\n" + e.StackTrace, "Exception while opening ProfileLog");
-        }
+         OpenProfileLog(startupTrace);
       }
-
-      ActivateItem(new FrameTimeViewModel(Events));
-
-      //just use an empty ProfileLog if one was not loaded already
-      CurrentPLog = CurrentPLog ?? new ProfileLog();
-      events.Subscribe(this);
     }
 
     public void ShowFrameDetails(ProfileFrame frame) {
@@ -116,28 +114,97 @@ namespace PerfAnalyzer {
         return;
       }
 
-
       OpenProfileLog(dlg.FileName);
     }
 
-    public void OpenProfileLog(string path) {
-      ProfileLog tlog;
+    readonly AsyncReaderWriterLock loadlock = new AsyncReaderWriterLock();
+    volatile CancellationTokenSource loadingToken;
+    volatile Task<bool> loadingTask;
 
-      try {
-        tlog = new ProfileLog(path);
-      } catch (Exception e) {
-
-        MessageBox.Show(e.Message + "\n" + e.StackTrace, "Exception while opening ProfileLog");
-
-        return;
+    public CancellationTokenSource OpenProfileLog(string path) {
+      if (View != null) {
+        View.RecentLogs.InsertFile(path);
+        Properties.Settings.Default.RecentLogs = RecentFiles;
+        Properties.Settings.Default.Save();
       }
 
-      View.RecentLogs.InsertFile(path);
+      var cts = new CancellationTokenSource();
+      Task.Run(async () => {
+        using (await loadlock.WriteLockAsync(cts.Token)) {
+          if (loadingToken != null && loadingToken.Token.CanBeCanceled) {
+            loadingToken.Cancel();
+          }
+          loadingToken = cts;
+          loadingTask = OpenProfileLog(path, loadingToken).ContinueWith(ProfileLogLoadFinished, cts).Unwrap();
+        }
+      });
+      return cts;
+    }
 
-      Properties.Settings.Default.RecentLogs = RecentFiles;
-      Properties.Settings.Default.Save();
+    private async Task<ProfileLog> OpenProfileLog(string path, CancellationTokenSource cts) {
+      var loadingTask = ProfileLog.OpenAsync(path, cts.Token);
+      var progress = CreateLoadProgress(path);
+      progress.Show(((Task)loadingTask, cts));
 
-      CurrentPLog = tlog;
+      cts.Token.ThrowIfCancellationRequested();
+      return await loadingTask;
+    }
+
+    private ProgressDialog CreateLoadProgress(string path) {
+      var progress = new ProgressDialog {
+        WindowTitle = "Loading " + Path.GetFileName(path),
+        Text = "Loading " + path,
+        ProgressBarStyle = ProgressBarStyle.MarqueeProgressBar,
+        ShowTimeRemaining = false,
+        ShowCancelButton = true
+      };
+
+      progress.DoWork += new DoWorkEventHandler((o, e) => {
+        var progressDialog = (ProgressDialog)o;
+        var (task, ct) = ((Task, CancellationTokenSource))e.Argument;
+        while (!task.IsCompleted) {
+          if (progressDialog.CancellationPending && !ct.IsCancellationRequested) {
+            ct.Cancel();
+          }
+          Thread.Sleep(500);
+        }
+        return;
+      });
+      return progress;
+    }
+
+    private async Task<bool> ProfileLogLoadFinished(Task<ProfileLog> task, object arg) {
+      var cts = (CancellationTokenSource)arg;
+
+      try {
+        // Need to be on the mainthread for MessageBox.Show and setting CurrentPLog will
+        // trigger notify property events to the GUI system.
+        await TaskFactory.SwitchToMainThreadAsync();
+        var plog = ((Task<ProfileLog>)task).Result;
+        cts.Token.ThrowIfCancellationRequested();
+
+        using (await loadlock.WriteLockAsync()) {
+          CurrentPLog = plog;
+        }
+        return true;
+      } catch (AggregateException e) when (e.InnerException is OperationCanceledException) {
+        return false;
+      } catch (Exception e) {
+        MessageBox.Show(e.Message + "\n" + e.StackTrace, "Exception while opening ProfileLog");
+        return false;
+      } finally {
+        using (await loadlock.WriteLockAsync()) {
+          cts.Dispose();
+          if (cts == loadingToken) {
+            loadingToken = null;
+            loadingTask = null;
+          }
+        }
+      }
+    }
+
+    private void CancelLoad() {
+      loadingToken?.Cancel();
     }
 
     public void CloseCurrentLog() {

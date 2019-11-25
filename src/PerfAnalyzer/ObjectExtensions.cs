@@ -24,7 +24,9 @@ namespace PerfAnalyzer {
         }
         var propertySelector = property.Compile();
 
-        EventHandler handler = delegate { o.OnNext(propertySelector(source)); };
+        EventHandler handler = delegate {
+          o.OnNext(propertySelector(source));
+        };
         propDesc.AddValueChanged(source, handler);
 
         return Disposable.Create(() => propDesc.RemoveValueChanged(source, handler));

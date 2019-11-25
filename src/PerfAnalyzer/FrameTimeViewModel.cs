@@ -113,9 +113,16 @@ namespace PerfAnalyzer {
       };
 
       Model.Series.Add(UpdateWorldJobTimeSeries);
+
+      Func<List<DataPoint>, List<DataPoint>> getWorldJobPoints = (_) => {
+        if (this.PLog.GetNameId("UpdateWorldJob::Run") != -1) {
+          return GetNodeDataPoints(this.PLog.GetNodeStats("UpdateWorldJob::Run"), f => f.InclusiveTime);
+        } else {
+          return new List<DataPoint>();
+        }
+      };
       DownSampler.AddSeries(UpdateWorldJobTimeSeries, this.OnPropertyChanges(n => FrametimePoints).
-                            Where(n => this.PLog.GetNameId("UpdateWorldJob::Run") != -1).
-                            Select(n => GetNodeDataPoints(this.PLog.GetNodeStats("UpdateWorldJob::Run"), f => f.InclusiveTime)));
+                                                      Select(getWorldJobPoints));
 
       Ranges = PlotRangeTracker.Install(Model);
 
